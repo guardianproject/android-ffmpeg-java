@@ -33,7 +33,13 @@ public class FFMPEGWrapper {
 		}
 	}
 	
+	private void execFFMPEG (String cmd, ShellCallback sc) throws Exception {
 	
+		String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
+		Runtime.getRuntime().exec("chmod 700 " +ffmpegBin);
+    	
+		execProcess (cmd.split(" "), sc);
+	}
 	
 	private void execProcess(String[] cmds, ShellCallback sc) throws Exception {		
         
@@ -71,7 +77,7 @@ public class FFMPEGWrapper {
 		
 	}
 	
-	public void processVideo(VideoDesc in, VideoDesc out, ShellCallback sc) throws Exception {
+	public void processVideo(MediaDesc in, MediaDesc out, ShellCallback sc) throws Exception {
 		
 		processVideo(new File(in.path),new File(out.path), 
 				out.format,in.duration,in.width,in.height,out.width,out.height,out.fps,out.kbitrate,out.vcodec,out.acodec,sc);
@@ -130,11 +136,11 @@ public class FFMPEGWrapper {
 	    
 	}
 	
-	public void concatAndTrimFiles (ArrayList<VideoDesc> videos,VideoDesc out)
+	public void concatAndTrimFiles (ArrayList<MediaDesc> videos,MediaDesc out,  ShellCallback sc) throws Exception
 	{
 		StringBuffer cmd = new StringBuffer();
 		
-		for (VideoDesc vdesc : videos)
+		for (MediaDesc vdesc : videos)
 		{
 			//ffmpeg -i $i -ss 00:00:03 -t 5 -f mpeg -;
 			cmd.append("ffmpeg -i ");
@@ -156,6 +162,9 @@ public class FFMPEGWrapper {
 		//cmd="${cmd} ) | ffmpeg -y -i - -threads 8
 		cmd.append("ffmpeg -y -i - -threads 8");
 		cmd.append(out.path);
+
+		execFFMPEG(cmd.toString(), sc);
+    	
 		
 	}
 	
