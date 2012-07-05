@@ -53,11 +53,6 @@ public class FFMPEGWrapper {
 			}
 
 			
-			/*
-		    if (process != null) {
-		    	process.destroy();        
-		    }*/
-
 	}
 	
 	public class FFMPEGArg
@@ -67,15 +62,26 @@ public class FFMPEGWrapper {
 		
 		public static final String ARG_VIDEOCODEC = "vcodec";
 		public static final String ARG_VERBOSITY = "v";
-		public static final String ARG_FILE_INPUT = "i";
+		public static final String ARG_FILE_INPUT = "-i";
 		public static final String ARG_SIZE = "-s";
 		public static final String ARG_FRAMERATE = "-r";
 		public static final String ARG_FORMAT = "-f";
+		public static final String ARG_BITRATE = "-b";
+		
 		
 	}
 	
+	public void processVideo(VideoDesc in, VideoDesc out, ShellCallback sc) throws Exception {
+		
+		processVideo(new File(in.path),new File(out.path), 
+				out.format,in.duration,in.width,in.height,out.width,out.height,out.fps,out.kbitrate,out.vcodec,out.acodec,sc);
+		
+	}
+	
+	
+	
 	public void processVideo(File inputFile, File outputFile, String format, int mDuration,
-			int iWidth, int iHeight, int oWidth, int oHeight, int frameRate, int kbitRate, String vcodec, String acodec, ShellCallback sc) throws Exception {
+			int iWidth, int iHeight, int oWidth, int oHeight, String frameRate, int kbitRate, String vcodec, String acodec, ShellCallback sc) throws Exception {
 		
 		float widthMod = ((float)oWidth)/((float)iWidth);
 		float heightMod = ((float)oHeight)/((float)iHeight);
@@ -89,9 +95,9 @@ public class FFMPEGWrapper {
     	String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
 		Runtime.getRuntime().exec("chmod 700 " +ffmpegBin);
     	
-    	String[] ffmpegCommand = {ffmpegBin, "-y", "-i", inputFile.getPath(), 
+    	String[] ffmpegCommand = {ffmpegBin, "-y", FFMPEGArg.ARG_FILE_INPUT, inputFile.getPath(), 
 				"-vcodec", vcodec, 
-				"-b", kbitRate+"k", 
+				FFMPEGArg.ARG_BITRATE, kbitRate+"k", 
 				"-s",  oWidth + "x" + oHeight, 
 				"-r", ""+frameRate,
 				"-acodec", acodec,
@@ -124,6 +130,34 @@ public class FFMPEGWrapper {
 	    
 	}
 	
+	public void concatAndTrimFiles (ArrayList<VideoDesc> videos,VideoDesc out)
+	{
+		StringBuffer cmd = new StringBuffer();
+		
+		for (VideoDesc vdesc : videos)
+		{
+			//ffmpeg -i $i -ss 00:00:03 -t 5 -f mpeg -;
+			cmd.append("ffmpeg -i ");
+			cmd.append(vdesc.path);
+			
+			if (vdesc.startTime != null)
+			{
+				cmd.append(" -ss ");
+				cmd.append(vdesc.startTime);
+			}
+			
+			cmd.append(" -t ");
+			cmd.append(vdesc.duration);
+			
+			//everything to mpeg!
+			cmd.append(" -f mpeg -;");
+		}
+		
+		//cmd="${cmd} ) | ffmpeg -y -i - -threads 8
+		cmd.append("ffmpeg -y -i - -threads 8");
+		cmd.append(out.path);
+		
+	}
 	
 	class FileMover {
 
