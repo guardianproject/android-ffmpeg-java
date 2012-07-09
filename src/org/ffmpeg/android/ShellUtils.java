@@ -45,7 +45,7 @@ public class ShellUtils {
 			{
 
 				@Override
-				public void shellOut(char[] msg) {
+				public void shellOut(String msg) {
 					
 					//System.out.print(msg);
 					
@@ -211,14 +211,14 @@ public class ShellUtils {
 			InputStreamReader reader = new InputStreamReader(proc.getInputStream());
 			int read=0;
 			while ((read=reader.read(buf)) != -1) {
-				if (sc != null) sc.shellOut(buf);
+				if (sc != null) sc.shellOut(new String(buf));
 			}
 			
 			// Consume the "stderr"
 			reader = new InputStreamReader(proc.getErrorStream());
 			read=0;
 			while ((read=reader.read(buf)) != -1) {
-				if (sc != null) sc.shellOut(buf);
+				if (sc != null) sc.shellOut(new String(buf));
 			}
 			
 			exitCode = proc.waitFor();
@@ -242,6 +242,6 @@ public class ShellUtils {
 	
 	public interface ShellCallback
 	{
-		public void shellOut (char[] msg);
+		public void shellOut (String shellLine);
 	}
 }

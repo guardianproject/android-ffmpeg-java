@@ -2,22 +2,21 @@ package org.ffmpeg.android;
 
 public class MediaDesc {
 
-	int width;
-	int height;
+	public int width;
+	public int height;
 	
-	String vcodec;
-	String acodec;
-	String fps;
-	int kbitrate;
+	public String vcodec;
+	public String acodec;
+	public String fps;
+	public int kbitrate;
 	
-	String path;
-	String format;
+	public String path;
+	public String format;
 	
-	String startTime;
-	int duration;
+	public String startTime;
+	public int duration;
 	
-	String videoFilter;
-	String audioFilter;
-	
-	
+	public String videoFilter;
+	public String audioFilter;
+		
 }
