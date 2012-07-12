@@ -53,6 +53,16 @@ public class FfmpegController {
 		ProcessBuilder pb = new ProcessBuilder(cmds);
 		pb.directory(fileBinDir);
 		
+		StringBuffer cmdlog = new StringBuffer();
+
+		for (String cmd : cmds)
+		{
+			cmdlog.append(cmd);
+			cmdlog.append(' ');
+		}
+		
+		Log.v(TAG,cmdlog.toString());
+		
 	//	pb.redirectErrorStream(true);
     	Process process = pb.start();    
     	
@@ -83,48 +93,47 @@ public class FfmpegController {
 		String key;
 		String value;
 		
-		public static final String ARG_VIDEOCODEC = "vcodec";
-		public static final String ARG_VERBOSITY = "v";
+		public static final String ARG_VIDEOCODEC = "-vcodec";
+		public static final String ARG_AUDIOCODEC = "-acodec";
+		
+		public static final String ARG_VERBOSITY = "-v";
 		public static final String ARG_FILE_INPUT = "-i";
 		public static final String ARG_SIZE = "-s";
 		public static final String ARG_FRAMERATE = "-r";
 		public static final String ARG_FORMAT = "-f";
 		public static final String ARG_BITRATE_VIDEO = "-b:v";
 		
+		public static final String ARG_BITRATE_AUDIO = "-b:a";
+		public static final String ARG_CHANNELS_AUDIO = "-ac";
+		public static final String ARG_FREQ_AUDIO = "-ar";
+		
+			
+		//ffmpeg -i source-video.avi -s 480x320 -vcodec mpeg4 -acodec aac -ac 1 -ar 16000 -r 13 -ab 32000 -aspect 3:2 output-video.mp4/
+		
 		
 	}
 	
 	public void processVideo(MediaDesc in, MediaDesc out, ShellCallback sc) throws Exception {
 		
-		processVideo(new File(in.path),new File(out.path), 
-				out.format,in.duration,in.width,in.height,out.width,out.height,out.fps,out.kbitrate,out.vcodec,out.acodec,sc);
+		float widthMod = ((float)out.width)/((float)in.width);
+		float heightMod = ((float)out.height)/((float)in.height);
 		
-	}
-	
-	
-	
-	public void processVideo(File inputFile, File outputFile, String format, int mDuration,
-			int iWidth, int iHeight, int oWidth, int oHeight, String frameRate, int kbitRate, String vcodec, String acodec, ShellCallback sc) throws Exception {
+		if (out.vcodec == null)
+			out.vcodec = "copy";//"libx264"
 		
-		float widthMod = ((float)oWidth)/((float)iWidth);
-		float heightMod = ((float)oHeight)/((float)iHeight);
-		
-		if (vcodec == null)
-			vcodec = "copy";//"libx264"
-		
-		if (acodec == null)
-			acodec = "copy";
+		if (out.acodec == null)
+			out.acodec = "copy";
 		
     	String ffmpegBin = "ffmpeg";
     	
-    	String[] ffmpegCommand = {ffmpegBin, "-y", FFMPEGArg.ARG_FILE_INPUT, inputFile.getPath(), 
-				"-vcodec", vcodec, 
-				FFMPEGArg.ARG_BITRATE_VIDEO, kbitRate+"k", 
-				"-s",  oWidth + "x" + oHeight, 
-				"-r", ""+frameRate,
-				"-acodec", acodec,
-				"-f", format,
-				outputFile.getPath()};
+    	String[] ffmpegCommand = {ffmpegBin, "-y", FFMPEGArg.ARG_FILE_INPUT, in.path, 
+				"-vcodec", out.vcodec, 
+				FFMPEGArg.ARG_BITRATE_VIDEO, out.vbitrate+"k", 
+				"-s",  out.width + "x" + out.height, 
+				"-r", out.fps,
+				"-acodec", out.acodec,
+				"-f", out.format,
+				out.path};
     	
     	//./ffmpeg -y -i test.mp4 -vframes 999999  -vf 'redact=blurbox.txt [out] [d], [d]nullsink' -acodec copy outputa.mp4
     	
@@ -137,7 +146,6 @@ public class FfmpegController {
     	
     	// Need to make sure this will create a legitimate mp4 file
     	//"-acodec", "ac3", "-ac", "1", "-ar", "16000", "-ab", "32k",
-    	
 
     	/*
     	String[] ffmpegCommand = {"/data/data/"+PACKAGENAME+"/ffmpeg", "-v", "10", "-y", "-i", recordingFile.getPath(), 
@@ -159,52 +167,86 @@ public class FfmpegController {
     	
 		int idx = 0;
 		
-		for (MediaDesc vdesc : videos)
+		for (MediaDesc mdesc : videos)
 		{
+			if (mdesc.path == null)
+				continue;
+		
+			//extract MPG video
 			ArrayList<String> cmd = new ArrayList<String>();
 
-			//ffmpeg -i $i -ss 00:00:03 -t 5 -f mpeg -;
-			
 			cmd.add(ffmpegBin);
 			cmd.add("-y");
 			cmd.add("-i");
-			cmd.add(vdesc.path);
+			cmd.add(mdesc.path);
 			
-			if (vdesc.startTime != null)
+			if (mdesc.startTime != null)
 			{
 				cmd.add("-ss");
-				cmd.add(vdesc.startTime);
+				cmd.add(mdesc.startTime);
 			}
 			
-			if (vdesc.duration > 0)
+			if (mdesc.duration != null)
 			{
 				cmd.add("-t");
-				cmd.add("" + vdesc.duration);
+				cmd.add(mdesc.duration);
 			}
 			
-			if (out.kbitrate > 0)
-			{
-				cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-				cmd.add(out.kbitrate + "k");
-				
-			}
+			//cmd.add("-an"); //no audio
+
+			//cmd.add("-strict");
+			//cmd.add("experimental");
 			
-			if (out.width > 0)
-			{
-				cmd.add(FFMPEGArg.ARG_SIZE);
-				cmd.add(out.width + "x" + out.height);
-			}
-			
-			//everything to mpeg!
+			//everything to mpeg, no sound
 			cmd.add("-f");
 			cmd.add("mpeg");
-			cmd.add(out.path + '.' + idx++ + ".mpg");
+			cmd.add(out.path + '.' + idx + ".mpg");
 
 			execFFMPEG(cmd, sc);
+			
+			/*
+			//no just extract the audio
+			cmd = new ArrayList<String>();
+
+			cmd.add(ffmpegBin);
+			cmd.add("-y");
+			cmd.add("-i");
+			cmd.add(mdesc.path);
+			
+			cmd.add("-vn");
+			
+			if (mdesc.startTime != null)
+			{
+				cmd.add("-ss");
+				cmd.add(mdesc.startTime);
+			}
+			
+			if (mdesc.duration != null)
+			{
+				cmd.add("-t");
+				cmd.add(mdesc.duration);
+			}
+			
+			if (out.achannels > 0)
+			{
+				cmd.add("-ac");
+				cmd.add(out.achannels+"");
+			}
+						
+			cmd.add("-f");
+			cmd.add("wav");
+			
+			//everything to WAV!
+			cmd.add(out.path + '.' + idx + ".wav");
+
+			execFFMPEG(cmd, sc);
+			
+			*/
+			
+
+			idx++;
 		}
 		
-		
-		//cmd="${cmd} ) | ffmpeg -y -i - -threads 8
 		StringBuffer cmdRun = new StringBuffer();
 		
 		cmdRun.append("cat ");
@@ -213,6 +255,8 @@ public class FfmpegController {
 		
 		for (MediaDesc vdesc : videos)
 		{
+			if (vdesc.path == null)
+				continue;
 			
 			cmdRun.append(out.path + '.' + idx++ + ".mpg" + " ");
 			
@@ -232,14 +276,33 @@ public class FfmpegController {
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		
+	
+		
 		cmd.add("-i");
 		cmd.add(out.path + ".full.mpg");
+		
+		
+		/* concat doesn't seem to work
+		cmd.add("-i");
+		
+		StringBuffer concat = new StringBuffer();
+		
+		for (int i = 0; i < videos.size(); i++)
+		{
+			if (i > 0)
+				concat.append("|");
+			
+			concat.append(out.path + '.' + i + ".wav");
+			
+		}
+		
+		cmd.add("concat:\"" + concat.toString() + "\"");
+		*/
 
-		if (out.kbitrate > 0)
+		if (out.vbitrate > 0)
 		{
 			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-			cmd.add(out.kbitrate + "k");
-			
+			cmd.add(out.vbitrate + "k");
 		}
 		
 		if (out.width > 0)
@@ -248,30 +311,55 @@ public class FfmpegController {
 			cmd.add(out.width + "x" + out.height);
 		
 		}
+		if (out.fps != null)
+		{
+			cmd.add(FFMPEGArg.ARG_FRAMERATE);
+			cmd.add(out.fps);
+		}
 		
 		if (out.vcodec != null)
 		{
-			cmd.add("-vcodec");
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
 			cmd.add(out.vcodec);
+		}
+		
+		if (out.videoFilter != null)
+		{
+			cmd.add("-vf");
+			cmd.add(out.videoFilter);
 		}
 		
 		if (out.acodec != null)
 		{
-			cmd.add("-acodec");
+			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
 			cmd.add(out.acodec);
 		}
 		
+		if (out.achannels > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_CHANNELS_AUDIO);
+			cmd.add(out.achannels+"");
+		}
 		
-	//	cmd.add("-threads");
-	//	cmd.add("8");
-	//	cmd.add("-strict");
-	//	cmd.add("experimental");
+		if (out.abitrate > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
+			cmd.add(out.abitrate + "k");
+		}
+		
+		if (out.format != null)
+		{
+			cmd.add("-f");
+			cmd.add(out.format);
+		}
+		
+		cmd.add("-strict");
+		cmd.add("experimental");
+		
 		cmd.add(out.path);
 
 		execFFMPEG(cmd, sc);
 
-    	
-		
 	}
 	
 	class FileMover {
@@ -362,6 +450,134 @@ public class FfmpegController {
 	}
 }
 
+/*
+ * Main options:
+-L                  show license
+-h                  show help
+-?                  show help
+-help               show help
+--help              show help
+-version            show version
+-formats            show available formats
+-codecs             show available codecs
+-bsfs               show available bit stream filters
+-protocols          show available protocols
+-filters            show available filters
+-pix_fmts           show available pixel formats
+-sample_fmts        show available audio sample formats
+-loglevel loglevel  set libav* logging level
+-v loglevel         set libav* logging level
+-debug flags        set debug flags
+-report             generate a report
+-f fmt              force format
+-i filename         input file name
+-y                  overwrite output files
+-n                  do not overwrite output files
+-c codec            codec name
+-codec codec        codec name
+-pre preset         preset name
+-t duration         record or transcode "duration" seconds of audio/video
+-fs limit_size      set the limit file size in bytes
+-ss time_off        set the start time offset
+-itsoffset time_off  set the input ts offset
+-itsscale scale     set the input ts scale
+-timestamp time     set the recording timestamp ('now' to set the current time)
+-metadata string=string  add metadata
+-dframes number     set the number of data frames to record
+-timelimit limit    set max runtime in seconds
+-target type        specify target file type ("vcd", "svcd", "dvd", "dv", "dv50", "pal-vcd", "ntsc-svcd", ...)
+-xerror             exit on error
+-frames number      set the number of frames to record
+-tag fourcc/tag     force codec tag/fourcc
+-filter filter_list  set stream filterchain
+-stats              print progress report during encoding
+-attach filename    add an attachment to the output file
+-dump_attachment filename  extract an attachment into a file
+-bsf bitstream_filters  A comma-separated list of bitstream filters
+-dcodec codec       force data codec ('copy' to copy stream)
 
+Advanced options:
+-map file.stream[:syncfile.syncstream]  set input stream mapping
+-map_channel file.stream.channel[:syncfile.syncstream]  map an audio channel from one stream to another
+-map_meta_data outfile[,metadata]:infile[,metadata]  DEPRECATED set meta data information of outfile from infile
+-map_metadata outfile[,metadata]:infile[,metadata]  set metadata information of outfile from infile
+-map_chapters input_file_index  set chapters mapping
+-benchmark          add timings for benchmarking
+-dump               dump each input packet
+-hex                when dumping packets, also dump the payload
+-re                 read input at native frame rate
+-loop_input         deprecated, use -loop
+-loop_output        deprecated, use -loop
+-vsync              video sync method
+-async              audio sync method
+-adrift_threshold threshold  audio drift threshold
+-copyts             copy timestamps
+-copytb source      copy input stream time base when stream copying
+-shortest           finish encoding within shortest input
+-dts_delta_threshold threshold  timestamp discontinuity delta threshold
+-copyinkf           copy initial non-keyframes
+-q q                use fixed quality scale (VBR)
+-qscale q           use fixed quality scale (VBR)
+-streamid streamIndex:value  set the value of an outfile streamid
+-muxdelay seconds   set the maximum demux-decode delay
+-muxpreload seconds  set the initial demux-decode delay
+-fpre filename      set options from indicated preset file
+
+Video options:
+-vframes number     set the number of video frames to record
+-r rate             set frame rate (Hz value, fraction or abbreviation)
+-s size             set frame size (WxH or abbreviation)
+-aspect aspect      set aspect ratio (4:3, 16:9 or 1.3333, 1.7777)
+-bits_per_raw_sample number  set the number of bits per raw sample
+-croptop size       Removed, use the crop filter instead
+-cropbottom size    Removed, use the crop filter instead
+-cropleft size      Removed, use the crop filter instead
+-cropright size     Removed, use the crop filter instead
+-padtop size        Removed, use the pad filter instead
+-padbottom size     Removed, use the pad filter instead
+-padleft size       Removed, use the pad filter instead
+-padright size      Removed, use the pad filter instead
+-padcolor color     Removed, use the pad filter instead
+-vn                 disable video
+-vcodec codec       force video codec ('copy' to copy stream)
+-sameq              use same quantizer as source (implies VBR)
+-same_quant         use same quantizer as source (implies VBR)
+-pass n             select the pass number (1 or 2)
+-passlogfile prefix  select two pass log file name prefix
+-vf filter list     video filters
+-b bitrate          video bitrate (please use -b:v)
+-dn                 disable data
+
+Advanced Video options:
+-pix_fmt format     set pixel format
+-intra              use only intra frames
+-vdt n              discard threshold
+-rc_override override  rate control override for specific intervals
+-deinterlace        deinterlace pictures
+-psnr               calculate PSNR of compressed frames
+-vstats             dump video coding statistics to file
+-vstats_file file   dump video coding statistics to file
+-intra_matrix matrix  specify intra matrix coeffs
+-inter_matrix matrix  specify inter matrix coeffs
+-top                top=1/bottom=0/auto=-1 field first
+-dc precision       intra_dc_precision
+-vtag fourcc/tag    force video tag/fourcc
+-qphist             show QP histogram
+-force_fps          force the selected framerate, disable the best supported framerate selection
+-force_key_frames timestamps  force key frames at specified timestamps
+-vbsf video bitstream_filters  deprecated
+-vpre preset        set the video options to the indicated preset
+
+Audio options:
+-aframes number     set the number of audio frames to record
+-aq quality         set audio quality (codec-specific)
+-ar rate            set audio sampling rate (in Hz)
+-ac channels        set number of audio channels
+-an                 disable audio
+-acodec codec       force audio codec ('copy' to copy stream)
+-vol volume         change audio volume (256=normal)
+-rmvol volume       rematrix volume (as factor)
+
+ */
 
 

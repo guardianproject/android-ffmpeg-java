@@ -6,15 +6,19 @@ public class MediaDesc {
 	public int height;
 	
 	public String vcodec;
-	public String acodec;
 	public String fps;
-	public int kbitrate;
+	public int vbitrate;
+	
+	public String acodec;
+	public int achannels;
+	public int abitrate;
 	
 	public String path;
 	public String format;
+	public String mimeType;
 	
 	public String startTime;
-	public int duration;
+	public String duration;
 	
 	public String videoFilter;
 	public String audioFilter;
