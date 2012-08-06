@@ -41,7 +41,7 @@ public class ShellUtils {
 			
 			//Check for 'su' binary 
 			String[] cmd = {"which su"};
-			int exitCode = ShellUtils.doShellCommand(cmd, new ShellCallback ()
+			int exitCode = ShellUtils.doShellCommand(null,cmd, new ShellCallback ()
 			{
 
 				@Override
@@ -51,7 +51,7 @@ public class ShellUtils {
 					
 				}
 				
-			}, false, true);
+			}, false, true).exitValue();
 			
 			if (exitCode == 0) {
 				logMessage("Can acquire root permissions");
@@ -175,18 +175,23 @@ public class ShellUtils {
 
 	}
 	
-	
 	public static int doShellCommand(String[] cmds, ShellCallback sc, boolean runAsRoot, boolean waitFor) throws Exception
 	{
+		return doShellCommand (null, cmds, sc, runAsRoot, waitFor).exitValue();
 		
-		Process proc = null;
-		int exitCode = -1;
+	}
+	
+	public static Process doShellCommand(Process proc, String[] cmds, ShellCallback sc, boolean runAsRoot, boolean waitFor) throws Exception
+	{
 		
-    	if (runAsRoot)
-    		proc = Runtime.getRuntime().exec("su");
-    	else
-    		proc = Runtime.getRuntime().exec("sh");
-    	
+		
+		if (proc == null)
+		{
+	    	if (runAsRoot)
+	    		proc = Runtime.getRuntime().exec("su");
+	    	else
+	    		proc = Runtime.getRuntime().exec("sh");
+		}	
     	
     	OutputStreamWriter out = new OutputStreamWriter(proc.getOutputStream());
         
@@ -221,12 +226,12 @@ public class ShellUtils {
 				if (sc != null) sc.shellOut(new String(buf));
 			}
 			
-			exitCode = proc.waitFor();
+			proc.waitFor();
 			
 		}
         
         
-        return exitCode;
+        return proc;
 
 	}
 	

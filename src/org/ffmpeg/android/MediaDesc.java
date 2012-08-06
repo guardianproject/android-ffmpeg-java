@@ -5,13 +5,15 @@ public class MediaDesc {
 	public int width;
 	public int height;
 	
-	public String vcodec;
-	public String fps;
-	public int vbitrate;
+	public String videoCodec;
+	public String videoFps;
+	public int videoBitrate;
 	
-	public String acodec;
-	public int achannels;
-	public int abitrate;
+	public String audioCodec;
+	public int audioChannels;
+	public int audioBitrate;
+	public String audioQuality;
+	public int audioVolume;
 	
 	public String path;
 	public String format;
@@ -22,5 +24,9 @@ public class MediaDesc {
 	
 	public String videoFilter;
 	public String audioFilter;
+	
+	public String qscale;
+	public String aspect;
+	public int passCount = 1; //default
 		
 }

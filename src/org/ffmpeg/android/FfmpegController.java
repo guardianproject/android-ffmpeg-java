@@ -24,6 +24,7 @@ public class FfmpegController {
 	String[] libraryAssets = {"ffmpeg"};
 	File fileBinDir;
 	Context context;
+	private String ffmpegBin;
 	
 	private final static String TAG = "FFMPEG";
 
@@ -36,9 +37,12 @@ public class FfmpegController {
 			BinaryInstaller bi = new BinaryInstaller(context,fileBinDir);
 			bi.installFromRaw();
 		}
+		
+		ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
+
 	}
 	
-	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws Exception {
+	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
 	
 		String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
 		Runtime.getRuntime().exec("chmod 700 " +ffmpegBin);
@@ -46,9 +50,7 @@ public class FfmpegController {
 		execProcess (cmd, sc);
 	}
 	
-	
-	
-	private int execProcess(List<String> cmds, ShellCallback sc) throws Exception {		
+	private int execProcess(List<String> cmds, ShellCallback sc) throws IOException, InterruptedException {		
         
 		ProcessBuilder pb = new ProcessBuilder(cmds);
 		pb.directory(fileBinDir);
@@ -107,63 +109,94 @@ public class FfmpegController {
 		public static final String ARG_CHANNELS_AUDIO = "-ac";
 		public static final String ARG_FREQ_AUDIO = "-ar";
 		
-			
-		//ffmpeg -i source-video.avi -s 480x320 -vcodec mpeg4 -acodec aac -ac 1 -ar 16000 -r 13 -ab 32000 -aspect 3:2 output-video.mp4/
-		
 		
 	}
 	
 	public void processVideo(MediaDesc in, MediaDesc out, ShellCallback sc) throws Exception {
 		
-		float widthMod = ((float)out.width)/((float)in.width);
-		float heightMod = ((float)out.height)/((float)in.height);
-		
-		if (out.vcodec == null)
-			out.vcodec = "copy";//"libx264"
-		
-		if (out.acodec == null)
-			out.acodec = "copy";
-		
-    	String ffmpegBin = "ffmpeg";
-    	
-    	String[] ffmpegCommand = {ffmpegBin, "-y", FFMPEGArg.ARG_FILE_INPUT, in.path, 
-				"-vcodec", out.vcodec, 
-				FFMPEGArg.ARG_BITRATE_VIDEO, out.vbitrate+"k", 
-				"-s",  out.width + "x" + out.height, 
-				"-r", out.fps,
-				"-acodec", out.acodec,
-				"-f", out.format,
-				out.path};
-    	
-    	//./ffmpeg -y -i test.mp4 -vframes 999999  -vf 'redact=blurbox.txt [out] [d], [d]nullsink' -acodec copy outputa.mp4
-    	
-    	//ffmpeg -v 10 -y -i /sdcard/org.witness.sscvideoproto/videocapture1042744151.mp4 -vcodec libx264
-    	//-b 3000k -s 720x480 -r 30 -acodec copy -f mp4 -vf 'redact=/data/data/org.witness.sscvideoproto/redact_unsort.txt'
-    	///sdcard/org.witness.sscvideoproto/new.mp4
-    	
-    	//"-vf" , "redact=" + Environment.getExternalStorageDirectory().getPath() + "/" + PACKAGENAME + "/redact_unsort.txt",
+    	ArrayList<String> cmd = new ArrayList<String>();
 
-    	
-    	// Need to make sure this will create a legitimate mp4 file
-    	//"-acodec", "ac3", "-ac", "1", "-ar", "16000", "-ab", "32k",
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+	
+		cmd.add("-i");
+		cmd.add(in.path);
+		
+		if (out.videoBitrate > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+			cmd.add(out.videoBitrate + "k");
+		}
+		
+		if (out.width > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_SIZE);
+			cmd.add(out.width + "x" + out.height);
+		
+		}
+		if (out.videoFps != null)
+		{
+			cmd.add(FFMPEGArg.ARG_FRAMERATE);
+			cmd.add(out.videoFps);
+		}
+		
+		if (out.videoCodec != null)
+		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add(out.videoCodec);
+		}
+		else
+		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add("copy");
+		}
+		
+		if (out.videoFilter != null)
+		{
+			cmd.add("-vf");
+			cmd.add(out.videoFilter);
+		}
+		
+		if (out.audioCodec != null)
+		{
+			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+			cmd.add(out.audioCodec);
+		}
+		else
+		{
+			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+			cmd.add("copy");
+		}
+		
+		if (out.audioChannels > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_CHANNELS_AUDIO);
+			cmd.add(out.audioChannels+"");
+		}
+		
+		if (out.audioBitrate > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
+			cmd.add(out.audioBitrate + "k");
+		}
+		
+		if (out.format != null)
+		{
+			cmd.add("-f");
+			cmd.add(out.format);
+		}
+		
+		cmd.add("-strict");
+		cmd.add("experimental");
+		
+		cmd.add(out.path);
 
-    	/*
-    	String[] ffmpegCommand = {"/data/data/"+PACKAGENAME+"/ffmpeg", "-v", "10", "-y", "-i", recordingFile.getPath(), 
-    					"-vcodec", "libx264", "-b", "3000k", "-vpre", "baseline", "-s", "720x480", "-r", "30",
-    					//"-vf", "drawbox=10:20:200:60:red@0.5",
-    					"-vf" , "\"movie="+ overlayImage.getPath() +" [logo];[in][logo] overlay=0:0 [out]\"",
-    					"-acodec", "copy",
-    					"-f", "mp4", savePath.getPath()+"/output.mp4"};
-    	*/
-    	
-    	
-    	execProcess(java.util.Arrays.asList(ffmpegCommand), sc);
+		execFFMPEG(cmd, sc);
 	    
 	}
 	
 	public void concatAndTrimFiles (ArrayList<MediaDesc> videos,MediaDesc out,  ShellCallback sc) throws Exception
 	{
-		String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
     	
 		int idx = 0;
 		
@@ -197,51 +230,15 @@ public class FfmpegController {
 			//cmd.add("-strict");
 			//cmd.add("experimental");
 			
-			//everything to mpeg, no sound
+			//everything to mpeg
 			cmd.add("-f");
 			cmd.add("mpeg");
 			cmd.add(out.path + '.' + idx + ".mpg");
 
 			execFFMPEG(cmd, sc);
 			
-			/*
-			//no just extract the audio
-			cmd = new ArrayList<String>();
-
-			cmd.add(ffmpegBin);
-			cmd.add("-y");
-			cmd.add("-i");
-			cmd.add(mdesc.path);
 			
-			cmd.add("-vn");
 			
-			if (mdesc.startTime != null)
-			{
-				cmd.add("-ss");
-				cmd.add(mdesc.startTime);
-			}
-			
-			if (mdesc.duration != null)
-			{
-				cmd.add("-t");
-				cmd.add(mdesc.duration);
-			}
-			
-			if (out.achannels > 0)
-			{
-				cmd.add("-ac");
-				cmd.add(out.achannels+"");
-			}
-						
-			cmd.add("-f");
-			cmd.add("wav");
-			
-			//everything to WAV!
-			cmd.add(out.path + '.' + idx + ".wav");
-
-			execFFMPEG(cmd, sc);
-			
-			*/
 			
 
 			idx++;
@@ -262,104 +259,57 @@ public class FfmpegController {
 			
 		}
 		
+		String mCatPath = out.path + ".full.mpg";
+		
 		cmdRun.append("> ");
-		cmdRun.append(out.path + ".full.mpg");
+		cmdRun.append(mCatPath);
 		
 		Log.d(TAG,"cat cmd: " + cmdRun.toString());
 		
 		String[] cmds = {"sh","-c",cmdRun.toString()};
 		Runtime.getRuntime().exec(cmds).waitFor();
 		
+		MediaDesc mInCat = new MediaDesc();
+		mInCat.path = mCatPath;
+		
+		processVideo(mInCat, out, sc);
+		
+	}
+	
+	public void extractAudio (MediaDesc mdesc, String audioFormat, File audioOutPath, ShellCallback sc) throws IOException, InterruptedException 
+	{
+		
+		//no just extract the audio
 		ArrayList<String> cmd = new ArrayList<String>();
 
-		//cmd="${cmd} ) | ffmpeg -y -i - -threads 8
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
-		
-	
-		
 		cmd.add("-i");
-		cmd.add(out.path + ".full.mpg");
+		cmd.add(mdesc.path);
 		
+		cmd.add("-vn");
 		
-		/* concat doesn't seem to work
-		cmd.add("-i");
-		
-		StringBuffer concat = new StringBuffer();
-		
-		for (int i = 0; i < videos.size(); i++)
+		if (mdesc.startTime != null)
 		{
-			if (i > 0)
-				concat.append("|");
-			
-			concat.append(out.path + '.' + i + ".wav");
-			
+			cmd.add("-ss");
+			cmd.add(mdesc.startTime);
 		}
 		
-		cmd.add("concat:\"" + concat.toString() + "\"");
-		*/
-
-		if (out.vbitrate > 0)
+		if (mdesc.duration != null)
 		{
-			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-			cmd.add(out.vbitrate + "k");
+			cmd.add("-t");
+			cmd.add(mdesc.duration);
 		}
 		
-		if (out.width > 0)
-		{
-			cmd.add(FFMPEGArg.ARG_SIZE);
-			cmd.add(out.width + "x" + out.height);
+					
+		cmd.add("-f");
+		cmd.add(audioFormat); //wav
 		
-		}
-		if (out.fps != null)
-		{
-			cmd.add(FFMPEGArg.ARG_FRAMERATE);
-			cmd.add(out.fps);
-		}
-		
-		if (out.vcodec != null)
-		{
-			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-			cmd.add(out.vcodec);
-		}
-		
-		if (out.videoFilter != null)
-		{
-			cmd.add("-vf");
-			cmd.add(out.videoFilter);
-		}
-		
-		if (out.acodec != null)
-		{
-			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
-			cmd.add(out.acodec);
-		}
-		
-		if (out.achannels > 0)
-		{
-			cmd.add(FFMPEGArg.ARG_CHANNELS_AUDIO);
-			cmd.add(out.achannels+"");
-		}
-		
-		if (out.abitrate > 0)
-		{
-			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
-			cmd.add(out.abitrate + "k");
-		}
-		
-		if (out.format != null)
-		{
-			cmd.add("-f");
-			cmd.add(out.format);
-		}
-		
-		cmd.add("-strict");
-		cmd.add("experimental");
-		
-		cmd.add(out.path);
+		//everything to WAV!
+		cmd.add(audioOutPath.getAbsolutePath());
 
 		execFFMPEG(cmd, sc);
-
+		
 	}
 	
 	class FileMover {
@@ -387,12 +337,14 @@ public class FfmpegController {
 		}
 	}
 	
-	private void killVideoProcessor ()
+	public int killVideoProcessor (boolean asRoot, boolean waitFor)
 	{
 		int killDelayMs = 300;
 
 		String ffmpegBin = new File(context.getDir("bin",0),"ffmpeg").getAbsolutePath();
 
+		int result = -1;
+		
 		int procId = -1;
 		
 		while ((procId = ShellUtils.findProcessId(ffmpegBin)) != -1)
@@ -403,19 +355,22 @@ public class FfmpegController {
 			String[] cmd = { ShellUtils.SHELL_CMD_KILL + ' ' + procId + "" };
 			
 			try { 
-			ShellUtils.doShellCommand(cmd,new ShellCallback ()
+			result = ShellUtils.doShellCommand(cmd,new ShellCallback ()
 			{
 
 				@Override
 				public void shellOut(String msg) {
-					// TODO Auto-generated method stub
+					
+					Log.d(TAG,"Killing ffmpeg:" + msg);
 					
 				}
 				
-			}, false, false);
+			}, asRoot, waitFor);
 			Thread.sleep(killDelayMs); }
 			catch (Exception e){}
 		}
+		
+		return result;
 	}
 
 
@@ -580,4 +535,49 @@ Audio options:
 
  */
 
+/*
+ * //./ffmpeg -y -i test.mp4 -vframes 999999  -vf 'redact=blurbox.txt [out] [d], [d]nullsink' -acodec copy outputa.mp4
+    	
+    	//ffmpeg -v 10 -y -i /sdcard/org.witness.sscvideoproto/videocapture1042744151.mp4 -vcodec libx264
+    	//-b 3000k -s 720x480 -r 30 -acodec copy -f mp4 -vf 'redact=/data/data/org.witness.sscvideoproto/redact_unsort.txt'
+    	///sdcard/org.witness.sscvideoproto/new.mp4
+    	
+    	//"-vf" , "redact=" + Environment.getExternalStorageDirectory().getPath() + "/" + PACKAGENAME + "/redact_unsort.txt",
 
+    	
+    	// Need to make sure this will create a legitimate mp4 file
+    	//"-acodec", "ac3", "-ac", "1", "-ar", "16000", "-ab", "32k",
+
+    	
+    	String[] ffmpegCommand = {"/data/data/"+PACKAGENAME+"/ffmpeg", "-v", "10", "-y", "-i", recordingFile.getPath(), 
+    					"-vcodec", "libx264", "-b", "3000k", "-vpre", "baseline", "-s", "720x480", "-r", "30",
+    					//"-vf", "drawbox=10:20:200:60:red@0.5",
+    					"-vf" , "\"movie="+ overlayImage.getPath() +" [logo];[in][logo] overlay=0:0 [out]\"",
+    					"-acodec", "copy",
+    					"-f", "mp4", savePath.getPath()+"/output.mp4"};
+    	
+    	
+    	
+
+//ffmpeg -i source-video.avi -s 480x320 -vcodec mpeg4 -acodec aac -ac 1 -ar 16000 -r 13 -ab 32000 -aspect 3:2 output-video.mp4/
+
+
+ */
+
+
+/* concat doesn't seem to work
+cmd.add("-i");
+
+StringBuffer concat = new StringBuffer();
+
+for (int i = 0; i < videos.size(); i++)
+{
+	if (i > 0)
+		concat.append("|");
+	
+	concat.append(out.path + '.' + i + ".wav");
+	
+}
+
+cmd.add("concat:\"" + concat.toString() + "\"");
+*/
