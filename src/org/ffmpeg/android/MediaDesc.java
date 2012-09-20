@@ -20,8 +20,8 @@ public class MediaDesc implements Cloneable
 	public String format;
 	public String mimeType;
 	
-	public String startTime;
-	public String duration;
+	public String startTime; //00:00:00 format
+	public String duration; //00:00:00 format
 	
 	public String videoFilter;
 	public String audioFilter;

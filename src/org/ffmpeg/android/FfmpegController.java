@@ -119,6 +119,18 @@ public class FfmpegController {
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 	
+		if (in.videoCodec != null)
+		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add(in.videoCodec);
+		}
+		
+		if (in.audioCodec != null)
+		{
+			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+			cmd.add(in.audioCodec);
+		}
+		
 		cmd.add("-i");
 		cmd.add(in.path);
 		
@@ -316,11 +328,15 @@ public class FfmpegController {
 		String[] cmds = {"sh","-c",cmdRun.toString()};
 		Runtime.getRuntime().exec(cmds).waitFor();
 		
+		
 		MediaDesc mInCat = new MediaDesc();
 		mInCat.path = mCatPath;
+	//	mInCat.audioCodec = "mp2";
+	//	mInCat.videoCodec = "mpeg1video";
 		
 		processVideo(mInCat, out, sc);
 		
+		out.path = mCatPath;
 	}
 	
 	public void extractAudio (MediaDesc mdesc, String audioFormat, File audioOutPath, ShellCallback sc) throws IOException, InterruptedException 
