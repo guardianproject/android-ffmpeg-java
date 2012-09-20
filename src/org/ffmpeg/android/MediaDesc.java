@@ -1,6 +1,7 @@
 package org.ffmpeg.android;
 
-public class MediaDesc {
+public class MediaDesc implements Cloneable
+{
 
 	public int width;
 	public int height;
@@ -29,4 +30,8 @@ public class MediaDesc {
 	public String aspect;
 	public int passCount = 1; //default
 		
+	public MediaDesc clone ()  throws CloneNotSupportedException
+	{
+		return (MediaDesc)super.clone();
+	}
 }

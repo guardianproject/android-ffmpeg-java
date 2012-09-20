@@ -195,53 +195,98 @@ public class FfmpegController {
 	    
 	}
 	
-	public void concatAndTrimFiles (ArrayList<MediaDesc> videos,MediaDesc out,  ShellCallback sc) throws Exception
+	public MediaDesc convertToMPEG (MediaDesc mediaIn, ShellCallback sc) throws Exception
+	{
+		ArrayList<String> cmd = new ArrayList<String>();
+
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		cmd.add("-i");
+		cmd.add(mediaIn.path);
+		
+		if (mediaIn.startTime != null)
+		{
+			cmd.add("-ss");
+			cmd.add(mediaIn.startTime);
+		}
+		
+		if (mediaIn.duration != null)
+		{
+			cmd.add("-t");
+			cmd.add(mediaIn.duration);
+		}
+		
+
+		//cmd.add("-strict");
+		//cmd.add("experimental");
+		
+		//everything to mpeg
+		cmd.add("-f");
+		cmd.add("mpeg");
+		
+		MediaDesc mediaOut = mediaIn.clone();
+		mediaOut.path = mediaIn.path + ".mpg";
+		
+		cmd.add(mediaOut.path);
+
+		execFFMPEG(cmd, sc);
+		
+		return mediaOut;
+	}
+	
+	public void concatAndTrimFiles (ArrayList<MediaDesc> videos,MediaDesc out, boolean preConvert, ShellCallback sc) throws Exception
 	{
     	
 		int idx = 0;
 		
-		for (MediaDesc mdesc : videos)
+		if (preConvert)
 		{
-			if (mdesc.path == null)
-				continue;
-		
-			//extract MPG video
-			ArrayList<String> cmd = new ArrayList<String>();
-
-			cmd.add(ffmpegBin);
-			cmd.add("-y");
-			cmd.add("-i");
-			cmd.add(mdesc.path);
-			
-			if (mdesc.startTime != null)
+			for (MediaDesc mdesc : videos)
 			{
-				cmd.add("-ss");
-				cmd.add(mdesc.startTime);
+				if (mdesc.path == null)
+					continue;
+			
+				//extract MPG video
+				ArrayList<String> cmd = new ArrayList<String>();
+	
+				cmd.add(ffmpegBin);
+				cmd.add("-y");
+				cmd.add("-i");
+				cmd.add(mdesc.path);
+				
+				if (mdesc.startTime != null)
+				{
+					cmd.add("-ss");
+					cmd.add(mdesc.startTime);
+				}
+				
+				if (mdesc.duration != null)
+				{
+					cmd.add("-t");
+					cmd.add(mdesc.duration);
+				}
+				
+				/*
+				cmd.add ("-acodec");
+				cmd.add("pcm_s16le");
+				
+				cmd.add ("-vcodec");
+				cmd.add("mpeg2video");
+				*/
+				//cmd.add("-an"); //no audio
+	
+				//cmd.add("-strict");
+				//cmd.add("experimental");
+				
+				//everything to mpeg
+				cmd.add("-f");
+				cmd.add("mpeg");
+				cmd.add(out.path + '.' + idx + ".mpg");
+	
+				execFFMPEG(cmd, sc);
+	
+				idx++;
 			}
-			
-			if (mdesc.duration != null)
-			{
-				cmd.add("-t");
-				cmd.add(mdesc.duration);
-			}
-			
-			//cmd.add("-an"); //no audio
-
-			//cmd.add("-strict");
-			//cmd.add("experimental");
-			
-			//everything to mpeg
-			cmd.add("-f");
-			cmd.add("mpeg");
-			cmd.add(out.path + '.' + idx + ".mpg");
-
-			execFFMPEG(cmd, sc);
-			
-			
-			
-			
-
-			idx++;
 		}
 		
 		StringBuffer cmdRun = new StringBuffer();
@@ -254,9 +299,11 @@ public class FfmpegController {
 		{
 			if (vdesc.path == null)
 				continue;
-			
-			cmdRun.append(out.path + '.' + idx++ + ".mpg" + " ");
-			
+	
+			if (preConvert)
+				cmdRun.append(out.path).append('.').append(idx++).append(".mpg").append(' '); //leave a space at the end!
+			else
+				cmdRun.append(vdesc.path).append(' ');
 		}
 		
 		String mCatPath = out.path + ".full.mpg";
