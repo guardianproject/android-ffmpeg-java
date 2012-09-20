@@ -98,6 +98,9 @@ public class FfmpegController {
 		public static final String ARG_VIDEOCODEC = "-vcodec";
 		public static final String ARG_AUDIOCODEC = "-acodec";
 		
+		public static final String ARG_VIDEOBITSTREAMFILTER = "-vbsf";
+		public static final String ARG_AUDIOBITSTREAMFILTER = "-absf";
+		
 		public static final String ARG_VERBOSITY = "-v";
 		public static final String ARG_FILE_INPUT = "-i";
 		public static final String ARG_SIZE = "-s";
@@ -109,6 +112,9 @@ public class FfmpegController {
 		public static final String ARG_CHANNELS_AUDIO = "-ac";
 		public static final String ARG_FREQ_AUDIO = "-ar";
 		
+		public static final String ARG_STARTTIME = "-ss";
+		public static final String ARG_DURATION = "-t";
+		
 		
 	}
 	
@@ -118,6 +124,12 @@ public class FfmpegController {
 
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
+		
+		if (in.format != null)
+		{
+			cmd.add(FFMPEGArg.ARG_FORMAT);
+			cmd.add(in.format);
+		}
 	
 		if (in.videoCodec != null)
 		{
@@ -157,11 +169,13 @@ public class FfmpegController {
 			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
 			cmd.add(out.videoCodec);
 		}
-		else
+		
+		if (out.videoBitStreamFilter != null)
 		{
-			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-			cmd.add("copy");
+			cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
+			cmd.add(out.videoBitStreamFilter);
 		}
+		
 		
 		if (out.videoFilter != null)
 		{
@@ -174,12 +188,12 @@ public class FfmpegController {
 			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
 			cmd.add(out.audioCodec);
 		}
-		else
-		{
-			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
-			cmd.add("copy");
-		}
 		
+		if (out.audioBitStreamFilter != null)
+		{
+			cmd.add(FFMPEGArg.ARG_AUDIOBITSTREAMFILTER);
+			cmd.add(out.audioBitStreamFilter);
+		}
 		if (out.audioChannels > 0)
 		{
 			cmd.add(FFMPEGArg.ARG_CHANNELS_AUDIO);
@@ -198,14 +212,57 @@ public class FfmpegController {
 			cmd.add(out.format);
 		}
 		
-		cmd.add("-strict");
-		cmd.add("experimental");
+	//	cmd.add("-strict");
+	//	cmd.add("experimental");
 		
 		cmd.add(out.path);
 
 		execFFMPEG(cmd, sc);
 	    
 	}
+	
+	//based on this gist: https://gist.github.com/3757344
+	//ffmpeg -i input1.mp4 -vcodec copy -vbsf h264_mp4toannexb -acodec copy part1.ts
+	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, ShellCallback sc) throws Exception
+	{
+		ArrayList<String> cmd = new ArrayList<String>();
+
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		cmd.add("-i");
+		cmd.add(mediaIn.path);
+		
+		if (mediaIn.startTime != null)
+		{
+			cmd.add(FFMPEGArg.ARG_STARTTIME);
+			cmd.add(mediaIn.startTime);
+		}
+		
+		if (mediaIn.duration != null)
+		{
+			cmd.add(FFMPEGArg.ARG_DURATION);
+			cmd.add(mediaIn.duration);
+		}
+
+		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+		cmd.add("copy");
+		
+		cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
+		cmd.add("h264_mp4toannexb");
+		
+		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+		cmd.add("copy");
+		
+		MediaDesc mediaOut = mediaIn.clone();
+		mediaOut.path = mediaIn.path + ".ts";
+		
+		cmd.add(mediaOut.path);
+
+		execFFMPEG(cmd, sc);
+		
+		return mediaOut;
+	}
+	
 	
 	public MediaDesc convertToMPEG (MediaDesc mediaIn, ShellCallback sc) throws Exception
 	{
@@ -246,7 +303,7 @@ public class FfmpegController {
 		return mediaOut;
 	}
 	
-	public void concatAndTrimFiles (ArrayList<MediaDesc> videos,MediaDesc out, boolean preConvert, ShellCallback sc) throws Exception
+	public void concatAndTrimFilesMPEG (ArrayList<MediaDesc> videos,MediaDesc out, boolean preConvert, ShellCallback sc) throws Exception
 	{
     	
 		int idx = 0;
@@ -331,8 +388,48 @@ public class FfmpegController {
 		
 		MediaDesc mInCat = new MediaDesc();
 		mInCat.path = mCatPath;
+
+	//	mInCat.format = "mpeg";
 	//	mInCat.audioCodec = "mp2";
 	//	mInCat.videoCodec = "mpeg1video";
+		
+		processVideo(mInCat, out, sc);
+		
+		out.path = mCatPath;
+	}
+	
+	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preConvert, ShellCallback sc) throws Exception
+	{
+    	
+		StringBuffer cmdRun = new StringBuffer();
+		
+		cmdRun.append("cat ");
+		
+		for (MediaDesc vdesc : videos)
+		{
+			if (vdesc.path == null)
+				continue;
+	
+			cmdRun.append(vdesc.path).append(' ');
+		}
+		
+		String mCatPath = out.path + ".full.ts";
+		
+		cmdRun.append("> ");
+		cmdRun.append(mCatPath);
+		
+		Log.d(TAG,"cat cmd: " + cmdRun.toString());
+		
+		String[] cmds = {"sh","-c",cmdRun.toString()};
+		Runtime.getRuntime().exec(cmds).waitFor();
+		
+		MediaDesc mInCat = new MediaDesc();
+		mInCat.path = mCatPath;
+		out.videoCodec = "copy";
+		out.audioCodec = "copy";
+		out.audioBitStreamFilter = "aac_adtstoasc";
+		
+		//ffmpeg -y -i parts.ts -acodec copy -absf aac_adtstoasc parts.mp4
 		
 		processVideo(mInCat, out, sc);
 		

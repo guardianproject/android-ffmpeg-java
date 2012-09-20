@@ -9,12 +9,14 @@ public class MediaDesc implements Cloneable
 	public String videoCodec;
 	public String videoFps;
 	public int videoBitrate;
+	public String videoBitStreamFilter;
 	
 	public String audioCodec;
 	public int audioChannels;
 	public int audioBitrate;
 	public String audioQuality;
 	public int audioVolume;
+	public String audioBitStreamFilter;
 	
 	public String path;
 	public String format;
