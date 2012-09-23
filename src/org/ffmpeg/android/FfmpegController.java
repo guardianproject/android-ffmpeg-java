@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -219,6 +220,90 @@ public class FfmpegController {
 
 		execFFMPEG(cmd, sc);
 	    
+	}
+	
+	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, ShellCallback sc) throws Exception
+	{
+		MediaDesc result = new MediaDesc ();
+		ArrayList<String> cmd = new ArrayList<String>();
+
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		
+		cmd.add("-i");
+		cmd.add(audioIn.path);
+		
+		cmd.add("-i");
+		cmd.add(videoIn.path);
+		
+		
+		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+		if (audioIn.audioCodec != null)
+			cmd.add(audioIn.audioCodec);
+		else
+			cmd.add("copy");
+		
+
+		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+		if (audioIn.videoCodec != null)
+			cmd.add(audioIn.videoCodec);
+		else
+			cmd.add("copy");
+		
+		result.path = audioIn.path + "-movie.mp4";
+		
+		
+		//ffmpeg -i audio.wav -i video.mp4 -acodec copy -vcodec copy output.mp4
+		
+		
+		return result;
+		
+	}
+	
+	public MediaDesc convertImageToMP4 (MediaDesc mediaIn, int duration, ShellCallback sc) throws Exception
+	{
+		MediaDesc result = new MediaDesc ();
+		ArrayList<String> cmd = new ArrayList<String>();
+
+		// ffmpeg -loop 1 -i IMG_1338.jpg -t 10 -r 29.97 -s 640x480 -qscale 5 test.mp4
+		
+		cmd = new ArrayList<String>();
+		
+		//convert images to MP4
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		
+		cmd.add("-loop");
+		cmd.add("1");
+		
+		cmd.add("-i");
+		cmd.add(mediaIn.path);
+		
+		cmd.add(FFMPEGArg.ARG_FRAMERATE);
+		cmd.add(mediaIn.videoFps);
+		
+		cmd.add("-t");
+		cmd.add(duration + "");
+		
+		cmd.add("-qscale");
+		cmd.add("5"); //a good value 1 is best 30 is worst
+		
+		cmd.add(FFMPEGArg.ARG_SIZE);
+		cmd.add(mediaIn.width + "x" + mediaIn.height);
+		
+		cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+		cmd.add(mediaIn.videoBitrate + "");
+		
+		cmd.add(mediaIn.path + "-movie.mp4");
+
+		result.path = mediaIn.path + "-movie.mp4";
+		result.videoBitrate = mediaIn.videoBitrate;
+		result.videoFps = mediaIn.videoFps;
+		result.mimeType = "video/mp4";
+		
+		execFFMPEG(cmd, sc);
+		
+		return result;
 	}
 	
 	//based on this gist: https://gist.github.com/3757344
