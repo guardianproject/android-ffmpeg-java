@@ -119,7 +119,7 @@ public class FfmpegController {
 		
 	}
 	
-	public void processVideo(MediaDesc in, MediaDesc out, ShellCallback sc) throws Exception {
+	public void processVideo(MediaDesc in, MediaDesc out, boolean enableExperimental, ShellCallback sc) throws Exception {
 		
     	ArrayList<String> cmd = new ArrayList<String>();
 
@@ -213,8 +213,11 @@ public class FfmpegController {
 			cmd.add(out.format);
 		}
 		
-	//	cmd.add("-strict");
-	//	cmd.add("experimental");
+		if (enableExperimental)
+		{
+			cmd.add("-strict");
+			cmd.add("-2");//experimental
+		}
 		
 		cmd.add(out.path);
 
@@ -260,7 +263,7 @@ public class FfmpegController {
 		
 	}
 	
-	public MediaDesc convertImageToMP4 (MediaDesc mediaIn, int duration, ShellCallback sc) throws Exception
+	public MediaDesc convertImageToMP4 (MediaDesc mediaIn, int duration, String outPath, ShellCallback sc) throws Exception
 	{
 		MediaDesc result = new MediaDesc ();
 		ArrayList<String> cmd = new ArrayList<String>();
@@ -288,18 +291,30 @@ public class FfmpegController {
 		cmd.add("-qscale");
 		cmd.add("5"); //a good value 1 is best 30 is worst
 		
-		cmd.add(FFMPEGArg.ARG_SIZE);
-		cmd.add(mediaIn.width + "x" + mediaIn.height);
+		if (mediaIn.width != -1)
+		{
+			cmd.add(FFMPEGArg.ARG_SIZE);
+			cmd.add(mediaIn.width + "x" + mediaIn.height);
+		//	cmd.add("-vf");
+		//	cmd.add("\"scale=-1:" + mediaIn.width + "\"");
+		}
 		
-		cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-		cmd.add(mediaIn.videoBitrate + "");
+		if (mediaIn.videoBitrate != -1)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+			cmd.add(mediaIn.videoBitrate + "");
+		}
 		
-		cmd.add(mediaIn.path + "-movie.mp4");
-
-		result.path = mediaIn.path + "-movie.mp4";
+	
+	//	-ar 44100 -acodec pcm_s16le -f s16le -ac 2 -i /dev/zero -acodec aac -ab 128k \ 
+	//	-map 0:0 -map 1:0
+		
+		result.path = outPath;
 		result.videoBitrate = mediaIn.videoBitrate;
 		result.videoFps = mediaIn.videoFps;
 		result.mimeType = "video/mp4";
+
+		cmd.add(result.path);
 		
 		execFFMPEG(cmd, sc);
 		
@@ -308,10 +323,27 @@ public class FfmpegController {
 	
 	//based on this gist: https://gist.github.com/3757344
 	//ffmpeg -i input1.mp4 -vcodec copy -vbsf h264_mp4toannexb -acodec copy part1.ts
-	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, ShellCallback sc) throws Exception
+	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String outPath, boolean preconvertMP4, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
+		MediaDesc mediaOut = mediaIn.clone();
+		
+		if (preconvertMP4)
+		{
+			MediaDesc mediaOut2 = new MediaDesc();
+			mediaOut2.path = outPath + ".mp4";
+			mediaOut2.audioCodec = "aac";
+			mediaOut2.videoFps = "29.97";
+			mediaOut2.videoBitrate = 700;
+			mediaOut2.audioBitrate = 12;
+			processVideo(mediaIn, mediaOut, true, sc);
+			
+			mediaIn.path = outPath;
+		}
+		
+		cmd = new ArrayList<String>();
+		
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
@@ -338,8 +370,7 @@ public class FfmpegController {
 		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
 		cmd.add("copy");
 		
-		MediaDesc mediaOut = mediaIn.clone();
-		mediaOut.path = mediaIn.path + ".ts";
+		mediaOut.path = outPath + ".ts";
 		
 		cmd.add(mediaOut.path);
 
@@ -349,7 +380,7 @@ public class FfmpegController {
 	}
 	
 	
-	public MediaDesc convertToMPEG (MediaDesc mediaIn, ShellCallback sc) throws Exception
+	public MediaDesc convertToMPEG (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
@@ -379,7 +410,7 @@ public class FfmpegController {
 		cmd.add("mpeg");
 		
 		MediaDesc mediaOut = mediaIn.clone();
-		mediaOut.path = mediaIn.path + ".mpg";
+		mediaOut.path = outPath + ".mpg";
 		
 		cmd.add(mediaOut.path);
 
@@ -478,7 +509,7 @@ public class FfmpegController {
 	//	mInCat.audioCodec = "mp2";
 	//	mInCat.videoCodec = "mpeg1video";
 		
-		processVideo(mInCat, out, sc);
+		processVideo(mInCat, out, false, sc);
 		
 		out.path = mCatPath;
 	}
@@ -516,7 +547,7 @@ public class FfmpegController {
 		
 		//ffmpeg -y -i parts.ts -acodec copy -absf aac_adtstoasc parts.mp4
 		
-		processVideo(mInCat, out, sc);
+		processVideo(mInCat, out, false, sc);
 		
 		out.path = mCatPath;
 	}

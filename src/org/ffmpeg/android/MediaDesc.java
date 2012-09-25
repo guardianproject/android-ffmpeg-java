@@ -3,19 +3,19 @@ package org.ffmpeg.android;
 public class MediaDesc implements Cloneable
 {
 
-	public int width;
-	public int height;
+	public int width = -1;
+	public int height = -1;
 	
 	public String videoCodec;
 	public String videoFps;
-	public int videoBitrate;
+	public int videoBitrate = -1;
 	public String videoBitStreamFilter;
 	
 	public String audioCodec;
-	public int audioChannels;
-	public int audioBitrate;
+	public int audioChannels = -1;
+	public int audioBitrate = -1;
 	public String audioQuality;
-	public int audioVolume;
+	public int audioVolume = -1;
 	public String audioBitStreamFilter;
 	
 	public String path;
