@@ -541,7 +541,11 @@ public class FfmpegController {
 		
 		MediaDesc mInCat = new MediaDesc();
 		mInCat.path = mCatPath;
-		out.videoCodec = "copy";
+		
+		if( out.videoFilter == null ) {
+			out.videoCodec = "copy";
+		}
+
 		out.audioCodec = "copy";
 		out.audioBitStreamFilter = "aac_adtstoasc";
 		
