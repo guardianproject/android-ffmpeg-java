@@ -361,8 +361,16 @@ public class FfmpegController {
 			cmd.add(mediaIn.duration);
 		}
 
-		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-		cmd.add("copy");
+		if (mediaIn.videoFilter == null)
+		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add("copy");
+		}
+		else
+		{
+			cmd.add("-vf");
+			cmd.add(mediaIn.videoFilter);
+		}
 		
 		cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
 		cmd.add("h264_mp4toannexb");
