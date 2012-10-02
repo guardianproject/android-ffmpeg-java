@@ -50,6 +50,12 @@ public class ShellUtils {
 					//System.out.print(msg);
 					
 				}
+
+				@Override
+				public void processComplete(int exitValue) {
+					// TODO Auto-generated method stub
+					
+				}
 				
 			}, false, true).exitValue();
 			
@@ -230,6 +236,7 @@ public class ShellUtils {
 			
 		}
         
+		sc.processComplete(proc.exitValue());
         
         return proc;
 
@@ -248,5 +255,7 @@ public class ShellUtils {
 	public interface ShellCallback
 	{
 		public void shellOut (String shellLine);
+		
+		public void processComplete (int exitValue);
 	}
 }

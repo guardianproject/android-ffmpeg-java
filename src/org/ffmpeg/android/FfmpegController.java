@@ -85,6 +85,8 @@ public class FfmpegController {
 
         int exitVal = process.waitFor();
         
+        sc.processComplete(exitVal);
+        
         return exitVal;
 
 
@@ -368,8 +370,17 @@ public class FfmpegController {
 		}
 		else
 		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add("libx264");
+		
 			cmd.add("-vf");
 			cmd.add(mediaIn.videoFilter);
+			
+			if (mediaIn.videoBitrate != -1)
+			{
+				cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+				cmd.add(mediaIn.videoBitrate + "k");
+			}
 		}
 		
 		cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
@@ -650,6 +661,12 @@ public class FfmpegController {
 				public void shellOut(String msg) {
 					
 					Log.d(TAG,"Killing ffmpeg:" + msg);
+					
+				}
+
+				@Override
+				public void processComplete(int exitValue) {
+					// TODO Auto-generated method stub
 					
 				}
 				
