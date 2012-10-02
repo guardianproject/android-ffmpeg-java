@@ -572,7 +572,7 @@ public class FfmpegController {
 		
 		processVideo(mInCat, out, false, sc);
 		
-		out.path = mCatPath;
+		//out.path = mCatPath;
 	}
 	
 	public void extractAudio (MediaDesc mdesc, String audioFormat, File audioOutPath, ShellCallback sc) throws IOException, InterruptedException 
