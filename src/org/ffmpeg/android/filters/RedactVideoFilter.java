@@ -11,7 +11,7 @@ public class RedactVideoFilter extends VideoFilter {
 		this.fileRedactList = fileRedactList;
 	}
 	
-	public String toString ()
+	public String getFilterString ()
 	{
 		if (fileRedactList != null)
 			return "redact=" + fileRedactList.getAbsolutePath();

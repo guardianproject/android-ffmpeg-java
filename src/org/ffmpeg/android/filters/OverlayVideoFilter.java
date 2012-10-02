@@ -54,7 +54,7 @@ public class OverlayVideoFilter extends VideoFilter {
 		this.yParam = yExpression;
 	}
 	
-	public String toString ()
+	public String getFilterString ()
 	{
 		if (overlayFile != null)
 			return "movie="
