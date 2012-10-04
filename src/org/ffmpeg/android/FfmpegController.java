@@ -227,7 +227,7 @@ public class FfmpegController {
 	    
 	}
 	
-	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, ShellCallback sc) throws Exception
+	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, String outPath, ShellCallback sc) throws Exception
 	{
 		MediaDesc result = new MediaDesc ();
 		ArrayList<String> cmd = new ArrayList<String>();
@@ -247,16 +247,36 @@ public class FfmpegController {
 			cmd.add(audioIn.audioCodec);
 		else
 			cmd.add("copy");
-		
 
 		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-		if (audioIn.videoCodec != null)
-			cmd.add(audioIn.videoCodec);
+		if (videoIn.videoCodec != null)
+			cmd.add(videoIn.videoCodec);
 		else
 			cmd.add("copy");
 		
-		result.path = audioIn.path + "-movie.mp4";
+		//cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
+		//cmd.add("h264_mp4toannexb");
 		
+		
+		if (videoIn.videoBitrate != -1)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+			cmd.add(videoIn.videoBitrate + "k");
+		}
+		
+		if (audioIn.audioBitrate != -1)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
+			cmd.add(audioIn.audioBitrate + "k");
+		}
+
+		cmd.add("-strict");
+		cmd.add("-2");//experimental
+		
+		result.path = outPath;
+		cmd.add(result.path);
+		
+		execFFMPEG(cmd, sc);
 		
 		//ffmpeg -i audio.wav -i video.mp4 -acodec copy -vcodec copy output.mp4
 		
@@ -331,17 +351,20 @@ public class FfmpegController {
 
 		MediaDesc mediaOut = mediaIn.clone();
 		
+		String mediaPath = mediaIn.path;
+		
 		if (preconvertMP4)
 		{
 			MediaDesc mediaOut2 = new MediaDesc();
-			mediaOut2.path = outPath + ".mp4";
+			mediaOut2.path =  outPath + "-tmp.mp4";
 			mediaOut2.audioCodec = "aac";
+			mediaOut2.videoCodec = "libx264";
 			mediaOut2.videoFps = "29.97";
-			mediaOut2.videoBitrate = 700;
-			mediaOut2.audioBitrate = 12;
-			processVideo(mediaIn, mediaOut, true, sc);
+			mediaOut2.videoBitrate = 1200;
+			mediaOut2.audioBitrate = 128;
+			processVideo(mediaIn, mediaOut2, true, sc);
 			
-			mediaIn.path = outPath;
+			mediaPath = mediaOut2.path;
 		}
 		
 		cmd = new ArrayList<String>();
@@ -349,7 +372,7 @@ public class FfmpegController {
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(mediaPath);
 		
 		if (mediaIn.startTime != null)
 		{
@@ -700,7 +723,8 @@ public class FfmpegController {
 	            BufferedReader br = new BufferedReader(isr);
 	            String line=null;
 	            while ( (line = br.readLine()) != null)
-	            	sc.shellOut(line);
+	            	if (sc != null)
+	            		sc.shellOut(line);
 	                
 	            } catch (IOException ioe)
 	              {
