@@ -3,9 +3,11 @@ package org.ffmpeg.android.test;
 import java.io.File;
 import java.util.ArrayList;
 
+import org.ffmpeg.android.filters.CropVideoFilter;
 import org.ffmpeg.android.filters.DrawBoxVideoFilter;
 import org.ffmpeg.android.filters.DrawTextVideoFilter;
 import org.ffmpeg.android.filters.FadeVideoFilter;
+import org.ffmpeg.android.filters.TransposeVideoFilter;
 import org.ffmpeg.android.filters.VideoFilter;
 
 import android.app.Activity;
@@ -33,13 +35,24 @@ public class FilterTest  {
     					"yellow",
     					"0.5");
     	
-    	FadeVideoFilter vfFadeIn = new FadeVideoFilter("in",0,50);
+    	float fps = 29.97f;
+    	int fadeTime = (int)(fps*3);
+    	//fades in first 3 seconds
+    	FadeVideoFilter vfFadeIn = new FadeVideoFilter("in",0,fadeTime);
     	
+    	//fades out last 50 frames
     	int totalFrames = (int)(14.37*29.97);
+    	FadeVideoFilter vfFadeOut = new FadeVideoFilter("out",totalFrames-fadeTime,fadeTime);
     	
-    	FadeVideoFilter vfFadeOut = new FadeVideoFilter("out",totalFrames-50,50);
+    	//crops video in 100 pixels on each side
+    	CropVideoFilter vfCrop = new CropVideoFilter("in_w-100","in_h-100","100","100");
     	
-    	//listFilters.add(vfTitle);
+    	//rotates video 90 degress clockwise
+    	TransposeVideoFilter vfTranspose = new TransposeVideoFilter(TransposeVideoFilter.NINETY_CLOCKWISE);
+    	
+    	listFilters.add(vfTranspose);
+    	listFilters.add(vfCrop);
+    	listFilters.add(vfTitle);
     	listFilters.add(vfFadeIn);
     	listFilters.add(vfFadeOut);
     
