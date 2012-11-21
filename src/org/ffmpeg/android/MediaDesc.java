@@ -36,4 +36,16 @@ public class MediaDesc implements Cloneable
 	{
 		return (MediaDesc)super.clone();
 	}
+
+	public boolean isImage() {
+		return mimeType.startsWith("image");
+	}
+
+	public boolean isVideo() {
+		return mimeType.startsWith("video");
+	}
+
+	public boolean isAudio() {
+		return mimeType.startsWith("audio");
+	}
 }
