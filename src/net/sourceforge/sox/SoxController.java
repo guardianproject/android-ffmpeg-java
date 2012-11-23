@@ -197,6 +197,73 @@ public class SoxController {
 	}
 
 	/**
+	 * Combine and mix audio files
+	 * sox -m -v 1.0 file[0] -v 1.0 file[1] ... -v 1.0 file[n] outFile
+	 * TODO support passing of volume
+	 * @param files
+	 * @return combined and mixed file (null on failure)
+	 */
+	public String combineMix(List<String> files, String outFile) {
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.add(soxBin);
+		cmd.add("-m");
+
+		for(String file : files) {
+			cmd.add("-v");
+			cmd.add("1.0");
+			cmd.add(file);
+		}
+		cmd.add(outFile);
+
+		try {
+			int rc = execSox(cmd, new LoggingCallback());
+			if(rc != 0) {
+				Log.e(TAG, "combineMix receieved non-zero return code!");
+				outFile = null;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return outFile;
+	}
+
+	/**
+	 * Simple combiner
+	 * sox file[0] file[1] ... file[n] <outFile>
+	 * @param files
+	 * @param outFile
+	 * @return outFile or null on failure
+	 */
+	public String combine(List<String> files, String outFile) {
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.add(soxBin);
+
+		for(String file : files) {
+			cmd.add(file);
+		}
+		cmd.add(outFile);
+
+		try {
+			int rc = execSox(cmd, new LoggingCallback());
+			if(rc != 0) {
+				Log.e(TAG, "combine receieved non-zero return code!");
+				outFile = null;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return outFile;
+	}
+
+	/**
 	 * Takes a seconds.frac value and formats it into:
 	 * 	hh:mm:ss:ss.frac
 	 * @param seconds
