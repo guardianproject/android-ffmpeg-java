@@ -6,7 +6,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.ffmpeg.android.BinaryInstaller;
@@ -104,16 +106,17 @@ public class SoxController {
 	}
 
 	/**
-	 * Discard all audio before start
-	 * sox <path> -e signed-integer -b 16 outFile trim <start>
-	 * @param seconds
+	 * Discard all audio not between start and length (length = end by default)
+	 * sox <path> -e signed-integer -b 16 outFile trim <start> <length>
+	 * @param start
+	 * @param length (optional)
 	 * @return path to trimmed audio
 	 */
-	public String trimAudio(String path, double start) {
+	public String trimAudio(String path, String start, String length) {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		File file = new File(path);
-		String outFile = file.getAbsolutePath() + "_fadeout.wav";
+		String outFile = file.getAbsolutePath() + "_trimmed.wav";
 		cmd.add(soxBin);
 		cmd.add(path);
 		cmd.add("-e");
@@ -122,10 +125,16 @@ public class SoxController {
 		cmd.add("16");
 		cmd.add(outFile);
 		cmd.add("trim");
-		cmd.add(Double.toString(start));
+		cmd.add(start);
+		if( length != null )
+			cmd.add(length);
 
 		try {
 			int rc = execSox(cmd, new LoggingCallback());
+			if( rc != 0 ) {
+				Log.e(TAG, "trimAudio receieved non-zero return code!");
+				outFile = null;
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -135,6 +144,66 @@ public class SoxController {
 		}
 
 		return outFile;
+	}
+
+	/**
+	 * Fade audio file
+	 * sox <path> outFile fade <type> <fadeInLength> <stopTime> <fadeOutLength>
+	 * @param path
+	 * @param type
+	 * @param fadeInLength specify 0 if no fade in is desired
+	 * @param stopTime (optional)
+	 * @param fadeOutLength (optional)
+	 * @return
+	 */
+	public String fadeAudio(String path, String type, String fadeInLength, String stopTime, String fadeOutLength ) {
+
+		final List<String> curves = Arrays.asList( new String[]{ "q", "h", "t", "l", "p"} );
+
+		if(!curves.contains(type)) {
+			Log.e(TAG, "fadeAudio: passed invalid type: " + type);
+			return null;
+		}
+
+		File file = new File(path);
+		String outFile = file.getAbsolutePath() + "_faded.wav";
+
+		ArrayList<String> cmd = new ArrayList<String>();
+		cmd.add(soxBin);
+		cmd.add(path);
+		cmd.add(outFile);
+		cmd.add("fade");
+		cmd.add(type);
+		cmd.add(fadeInLength);
+		if(stopTime != null)
+			cmd.add(stopTime);
+		if(fadeOutLength != null)
+			cmd.add(fadeOutLength);
+
+		try {
+			int rc = execSox(cmd, new LoggingCallback());
+			if(rc != 0) {
+				Log.e(TAG, "fadeAudio receieved non-zero return code!");
+				outFile = null;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return outFile;
+	}
+
+	/**
+	 * Takes a seconds.frac value and formats it into:
+	 * 	hh:mm:ss:ss.frac
+	 * @param seconds
+	 */
+	public String formatTimePeriod(double seconds) {
+		String seconds_frac = new DecimalFormat("#.##").format(seconds);
+		return String.format("0:0:%s", seconds_frac);
 	}
 
 	private int execSox(List<String> cmd, ShellCallback sc) throws IOException,
