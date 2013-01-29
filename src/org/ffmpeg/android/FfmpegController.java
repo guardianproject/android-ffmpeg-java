@@ -227,6 +227,112 @@ public class FfmpegController {
 	    
 	}
 	
+	
+	public MediaDesc createSlideshowFromImagesAndAudio (ArrayList<MediaDesc> images, MediaDesc audio, int width, int height, int durationPerSlide, String bitrate, String outPath, ShellCallback sc) throws Exception
+	{
+
+		final String imageBasePath = new File(new File(outPath).getParent(),"image-").getAbsolutePath();
+		final String imageBaseVariablePath = imageBasePath + "%03d.jpg";
+		
+		MediaDesc result = new MediaDesc ();
+
+		result.path = outPath;
+		
+		ArrayList<String> cmd = new ArrayList<String>();
+		
+		//first we need to same size all the input images
+	
+		int imageCounter = 1;
+		
+		for (MediaDesc image : images)
+		{
+			cmd = new ArrayList<String>();
+			cmd.add(ffmpegBin);
+			cmd.add("-y");
+			
+			cmd.add("-i");
+			cmd.add(image.path);
+			
+			cmd.add("-s");
+			cmd.add(width + "x" + height);
+			
+			String newImagePath = imageBasePath + String.format("%03d", imageCounter) + ".jpg";
+			cmd.add(newImagePath);
+			
+			execFFMPEG(cmd, sc);
+			
+			imageCounter++;
+			
+		}
+		
+		//then combine them with the audio track
+		cmd = new ArrayList<String>();
+		String audioPath = audio.path;
+
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		
+		cmd.add("-loop");
+		cmd.add("0");
+		
+		cmd.add("-f");
+		cmd.add("image2");
+		
+		cmd.add("-r");
+		cmd.add("1/" + durationPerSlide);
+		
+		cmd.add("-i");
+		cmd.add(imageBaseVariablePath);
+		
+		cmd.add("-b:v");
+		cmd.add(bitrate);
+		
+		if (audioPath != null)
+		{
+			cmd.add("-i");
+			cmd.add(audioPath);
+			
+			cmd.add("-map");
+			cmd.add("0:0");
+			
+			cmd.add("-map");
+			cmd.add("1:0");
+		}
+		
+		cmd.add("-strict");
+		cmd.add("-2");//experimental
+		
+		cmd.add("-vcodec"); 
+		cmd.add("libx264");
+		
+		cmd.add(result.path);
+		
+		execFFMPEG(cmd, sc);
+		
+		
+		return result;
+	}
+	
+	/*
+	 * ffmpeg -y -loop 0 -f image2 -r 0.5 -i image-%03d.jpg -s:v 1280x720 -b:v 1M \
+   -i soundtrack.mp3 -t 01:05:00 -map 0:0 -map 1:0 out.avi
+   
+   -loop_input – loops the images. Disable this if you want to stop the encoding when all images are used or the soundtrack is finished.
+
+-r 0.5 – sets the framerate to 0.5, which means that each image will be shown for 2 seconds. Just take the inverse, for example if you want each image to last for 3 seconds, set it to 0.33.
+
+-i image-%03d.jpg – use these input files. %03d means that there will be three digit numbers for the images.
+
+-s 1280x720 – sets the output frame size.
+
+-b 1M – sets the bitrate. You want 500MB for one hour, which equals to 4000MBit in 3600 seconds, thus a bitrate of approximately 1MBit/s should be sufficient.
+
+-i soundtrack.mp3 – use this soundtrack file. Can be any format.
+
+-t 01:05:00 – set the output length in hh:mm:ss format.
+
+out.avi – create this output file. Change it as you like, for example using another container like MP4.
+	 */
 	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, String outPath, ShellCallback sc) throws Exception
 	{
 		MediaDesc result = new MediaDesc ();
@@ -910,3 +1016,4 @@ for (int i = 0; i < videos.size(); i++)
 
 cmd.add("concat:\"" + concat.toString() + "\"");
 */
+
