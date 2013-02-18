@@ -451,27 +451,13 @@ out.avi – create this output file. Change it as you like, for example using an
 	
 	//based on this gist: https://gist.github.com/3757344
 	//ffmpeg -i input1.mp4 -vcodec copy -vbsf h264_mp4toannexb -acodec copy part1.ts
-	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String outPath, boolean preconvertMP4, ShellCallback sc) throws Exception
+	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		MediaDesc mediaOut = mediaIn.clone();
 		
 		String mediaPath = mediaIn.path;
-		
-		if (preconvertMP4)
-		{
-			MediaDesc mediaOut2 = new MediaDesc();
-			mediaOut2.path =  outPath + "-tmp.mp4";
-			mediaOut2.audioCodec = "aac";
-			mediaOut2.videoCodec = "libx264";
-			mediaOut2.videoFps = "29.97";
-			mediaOut2.videoBitrate = 1200;
-			mediaOut2.audioBitrate = 128;
-			processVideo(mediaIn, mediaOut2, true, sc);
-			
-			mediaPath = mediaOut2.path;
-		}
 		
 		cmd = new ArrayList<String>();
 		
@@ -662,7 +648,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		out.path = mCatPath;
 	}
 	
-	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preConvert, ShellCallback sc) throws Exception
+	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean mediaNeedsConversion, ShellCallback sc) throws Exception
 	{
     	
 		StringBuffer cmdRun = new StringBuffer();
@@ -674,7 +660,18 @@ out.avi – create this output file. Change it as you like, for example using an
 			if (vdesc.path == null)
 				continue;
 	
-			cmdRun.append(vdesc.path).append(' ');
+			if (!vdesc.path.endsWith(".ts"))
+			{
+				/*
+				MediaDesc mdOutMp4 = new MediaDesc ();
+				mdOutMp4.path = vdesc.path + ".mp4";
+				processVideo(vdesc, mdOutMp4, true, sc);
+				*/
+				MediaDesc mdOut = convertToMP4Stream(vdesc, vdesc.path, sc);
+				cmdRun.append(mdOut.path).append(' ');
+			}
+			else
+				cmdRun.append(vdesc.path).append(' ');
 		}
 		
 		String mCatPath = out.path + ".full.ts";
