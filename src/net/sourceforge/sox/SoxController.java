@@ -56,7 +56,7 @@ public class SoxController {
 
 		@Override
 		public void shellOut(String shellLine) {
-			Log.e("sox", shellLine);
+			Log.d("sox", shellLine);
 			if( !shellLine.startsWith("Length") )
 				return;
 			String[] split = shellLine.split(":");
@@ -77,6 +77,7 @@ public class SoxController {
 
 		}
 	}
+	
 	/**
 	 * Retrieve the length of the audio file
 	 * sox file.wav 2>&1 -n stat | grep Length | cut -d : -f 2 | cut -f 1
@@ -95,11 +96,10 @@ public class SoxController {
 		try {
 			execSox(cmd, sc);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.e("sox","error getting length ",e);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.e("sox","error getting length",e);
 		}
 
 		return sc.length;
@@ -313,6 +313,8 @@ public class SoxController {
 
 		int exitVal = process.waitFor();
 
+		while (outputGobbler.isAlive() || errorGobbler.isAlive());
+		
 		sc.processComplete(exitVal);
 
 		return exitVal;
