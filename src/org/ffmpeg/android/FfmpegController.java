@@ -250,17 +250,18 @@ public class FfmpegController {
 		
 		ArrayList<String> cmd = new ArrayList<String>();
 		
-		//first we need to same size all the input images
 	
-		MediaDesc firstImg = images.get(0);
-		int imageCounter = 1;
+		String newImagePath = null;
+		int imageCounter = 0;
+		
+		MediaDesc imageCover = images.get(0); //add the first image twice
 		
 		cmd = new ArrayList<String>();
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		
 		cmd.add("-i");
-		cmd.add(firstImg.path);
+		cmd.add(imageCover.path);
 		
 		if (width != -1 && height != -1)
 		{
@@ -268,13 +269,10 @@ public class FfmpegController {
 			cmd.add(width + "x" + height);
 		}
 		
-		String newImagePath = imageBasePath + String.format("%03d", imageCounter) + ".jpg";
+		newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
 		cmd.add(newImagePath);
 		
 		execFFMPEG(cmd, sc);
-		
-		imageCounter++;
-		
 		
 		for (MediaDesc image : images)
 		{
@@ -285,22 +283,23 @@ public class FfmpegController {
 			cmd.add("-i");
 			cmd.add(image.path);
 			
-			cmd.add("-s");
-			cmd.add(width + "x" + height);
+			if (width != -1 && height != -1)
+			{
+				cmd.add("-s");
+				cmd.add(width + "x" + height);
+			}
 			
-			newImagePath = imageBasePath + String.format("%03d", imageCounter) + ".jpg";
+			newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
 			cmd.add(newImagePath);
 			
 			execFFMPEG(cmd, sc);
 			
-			imageCounter++;
 			
 		}
 		
 		//then combine them with the audio track
 		cmd = new ArrayList<String>();
-		String audioPath = audio.path;
-
+		
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		
@@ -316,34 +315,57 @@ public class FfmpegController {
 		cmd.add("-i");
 		cmd.add(imageBaseVariablePath);
 		
-		cmd.add("-b:v");
-		cmd.add(bitrate);
+		cmd.add("-strict");
+		cmd.add("-2");//experimental
+	
+		cmd.add(result.path + ".mpg");
 		
-		if (audioPath != null)
+		execFFMPEG(cmd, sc);
+		
+		//now combine and encode
+		cmd = new ArrayList<String>();
+		
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		
+		cmd.add("-i");
+		cmd.add(result.path + ".mpg");
+		
+		if (audio != null && audio.path != null)
 		{
 			cmd.add("-i");
-			cmd.add(audioPath);
+			cmd.add(audio.path);
 			
 			cmd.add("-map");
 			cmd.add("0:0");
 			
 			cmd.add("-map");
 			cmd.add("1:0");
+			
+			cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
+			cmd.add("aac");
+			
+			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
+			cmd.add("128k");
+			
 		}
 		
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 		
-		cmd.add("-vcodec"); 
-		cmd.add("libx264");
+
 		
-		cmd.add("-r");
-		cmd.add("30");//set output rate at 30fps
+		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+		cmd.add("libx264");
+
+		cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+		cmd.add(bitrate);
+		
 		
 		cmd.add(result.path);
 		
-		execFFMPEG(cmd, sc);
 		
+		execFFMPEG(cmd, sc);
 		
 		return result;
 	}
@@ -549,7 +571,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	}
 	
 	
-	public MediaDesc convertToWaveAudio (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
+	public MediaDesc convertToWaveAudio (MediaDesc mediaIn, String outPath, String sampleRate, int channels, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
@@ -570,7 +592,12 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(mediaIn.duration);
 		}
 		
-
+		cmd.add("-ar");
+		cmd.add(sampleRate);
+		
+		cmd.add("-ac");
+		cmd.add(channels + "");
+		
 		cmd.add("-vn");
 		
 		MediaDesc mediaOut = mediaIn.clone();
