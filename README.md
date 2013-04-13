@@ -5,6 +5,8 @@ Android applications.  It depends on the
 [android-ffmpeg](https://github.com/guardianproject/android-ffmpeg) project to
 provide the ffmpeg binary.
 
+It is licensed under the GPLv3.
+
 ## Building
 
 Ensure `NDK_BASE` env variable is set to the location of your NDK, example:
