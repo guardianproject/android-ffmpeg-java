@@ -571,7 +571,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	}
 	
 	
-	public MediaDesc convertToWaveAudio (MediaDesc mediaIn, String outPath, String sampleRate, int channels, ShellCallback sc) throws Exception
+	public MediaDesc convertToWaveAudio (MediaDesc mediaIn, String outPath, int sampleRate, int channels, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
@@ -593,7 +593,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		}
 		
 		cmd.add("-ar");
-		cmd.add(sampleRate);
+		cmd.add(sampleRate + "");
 		
 		cmd.add("-ac");
 		cmd.add(channels + "");
@@ -766,7 +766,9 @@ out.avi – create this output file. Change it as you like, for example using an
 				cmd.add ("-vcodec");
 				cmd.add("mpeg2video");
 				*/
-				//cmd.add("-an"); //no audio
+				
+				if (out.audioCodec == null)
+					cmd.add("-an"); //no audio
 	
 				//cmd.add("-strict");
 				//cmd.add("experimental");
