@@ -23,13 +23,16 @@ import android.util.Log;
 public class FfmpegController {
 
 	File fileBinDir;
-	Context context;
+	Context mContext;
 	private String ffmpegBin;
 	
 	private final static String TAG = "FFMPEG";
-
-	public FfmpegController(Context _context) throws FileNotFoundException, IOException {
-		context = _context;
+	
+	private File mFileTemp;
+	
+	public FfmpegController(Context context, File fileTemp) throws FileNotFoundException, IOException {
+		mContext = context;
+		mFileTemp = fileTemp;
 		
 		checkBinary ();
 		
@@ -37,15 +40,14 @@ public class FfmpegController {
 	
 	private void checkBinary () throws FileNotFoundException, IOException
 	{
-		fileBinDir = context.getDir("bin",0);
+		fileBinDir = mContext.getDir("bin",0);
 
-		long assetLength = context.getResources().openRawResourceFd(R.raw.ffmpeg).getLength();
+		long assetLength = mContext.getResources().openRawResourceFd(R.raw.ffmpeg).getLength();
 		File fileBin = new File(fileBinDir,"ffmpeg");
 		
 		if (!fileBin.exists() || fileBin.length() != assetLength)
 		{
-			
-			BinaryInstaller bi = new BinaryInstaller(context,fileBinDir);
+			BinaryInstaller bi = new BinaryInstaller(mContext,fileBinDir);
 			bi.installFromRaw();
 		}
 		
@@ -241,7 +243,7 @@ public class FfmpegController {
 	public MediaDesc createSlideshowFromImagesAndAudio (ArrayList<MediaDesc> images, MediaDesc audio, int width, int height, int durationPerSlide, String bitrate, String outPath, ShellCallback sc) throws Exception
 	{
 
-		final String imageBasePath = new File(new File(outPath).getParent(),"image-").getAbsolutePath();
+		final String imageBasePath = new File(mFileTemp,"image-").getAbsolutePath();
 		final String imageBaseVariablePath = imageBasePath + "%03d.jpg";
 		
 		MediaDesc result = new MediaDesc ();
@@ -297,7 +299,7 @@ public class FfmpegController {
 			
 		}
 		
-		//then combine them with the audio track
+		//then combine them
 		cmd = new ArrayList<String>();
 		
 		cmd.add(ffmpegBin);
@@ -318,7 +320,9 @@ public class FfmpegController {
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 	
-		cmd.add(result.path + ".mpg");
+		String fileTempMpg = new File(mFileTemp,"tmp.mpg").getAbsolutePath();
+		
+		cmd.add(fileTempMpg);
 		
 		execFFMPEG(cmd, sc);
 		
@@ -329,7 +333,7 @@ public class FfmpegController {
 		cmd.add("-y");
 		
 		cmd.add("-i");
-		cmd.add(result.path + ".mpg");
+		cmd.add(fileTempMpg);
 		
 		if (audio != null && audio.path != null)
 		{
@@ -353,14 +357,11 @@ public class FfmpegController {
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 		
-
-		
 		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
 		cmd.add("libx264");
 
 		cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
 		cmd.add(bitrate);
-		
 		
 		cmd.add(result.path);
 		
@@ -390,13 +391,14 @@ public class FfmpegController {
 
 out.avi – create this output file. Change it as you like, for example using another container like MP4.
 	 */
-	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, String outPath, ShellCallback sc) throws Exception
+	public MediaDesc combineAudioAndVideo (MediaDesc videoIn, MediaDesc audioIn, MediaDesc out, ShellCallback sc) throws Exception
 	{
-		MediaDesc result = new MediaDesc ();
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
+		
+		cmd.add("-shortest");
 		
 		cmd.add("-i");
 		cmd.add(audioIn.path);
@@ -404,47 +406,39 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("-i");
 		cmd.add(videoIn.path);
 		
-		
 		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
-		if (audioIn.audioCodec != null)
-			cmd.add(audioIn.audioCodec);
+		if (out.audioCodec != null)
+			cmd.add(out.audioCodec);
 		else
 			cmd.add("copy");
 
 		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-		if (videoIn.videoCodec != null)
-			cmd.add(videoIn.videoCodec);
+		if (out.videoCodec != null)
+			cmd.add(out.videoCodec);
 		else
 			cmd.add("copy");
 		
-		//cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
-		//cmd.add("h264_mp4toannexb");
-		
-		
-		if (videoIn.videoBitrate != -1)
+		if (out.videoBitrate != -1)
 		{
 			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-			cmd.add(videoIn.videoBitrate + "k");
+			cmd.add(out.videoBitrate + "k");
 		}
 		
-		if (audioIn.audioBitrate != -1)
+		if (out.audioBitrate != -1)
 		{
 			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
-			cmd.add(audioIn.audioBitrate + "k");
+			cmd.add(out.audioBitrate + "k");
 		}
 
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
-		
-		result.path = outPath;
-		cmd.add(result.path);
+
+		cmd.add(out.path);
 		
 		execFFMPEG(cmd, sc);
 		
-		//ffmpeg -i audio.wav -i video.mp4 -acodec copy -vcodec copy output.mp4
 		
-		
-		return result;
+		return out;
 		
 	}
 	
@@ -508,6 +502,8 @@ out.avi – create this output file. Change it as you like, for example using an
 	
 	//based on this gist: https://gist.github.com/3757344
 	//ffmpeg -i input1.mp4 -vcodec copy -vbsf h264_mp4toannexb -acodec copy part1.ts
+	//ffmpeg -i input2.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate2.ts
+
 	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
@@ -535,33 +531,16 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(mediaIn.duration);
 		}
 
-		if (mediaIn.videoFilter == null)
-		{
-			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-			cmd.add("copy");
-		}
-		else
-		{
-			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-			cmd.add("libx264");
-		
-			cmd.add("-vf");
-			cmd.add(mediaIn.videoFilter);
-			
-			if (mediaIn.videoBitrate != -1)
-			{
-				cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-				cmd.add(mediaIn.videoBitrate + "k");
-			}
-		}
-		
+		cmd.add("-c");
+		cmd.add("copy");
+	
 		cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
 		cmd.add("h264_mp4toannexb");
 		
-		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
-		cmd.add("copy");
+		cmd.add("-f");
+		cmd.add("mpegts");
 		
-		mediaOut.path = outPath + ".ts";
+		mediaOut.path = outPath;
 		
 		cmd.add(mediaOut.path);
 
@@ -885,7 +864,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	{
 		int killDelayMs = 300;
 
-		String ffmpegBin = new File(context.getDir("bin",0),"ffmpeg").getAbsolutePath();
+		String ffmpegBin = new File(mContext.getDir("bin",0),"ffmpeg").getAbsolutePath();
 
 		int result = -1;
 		
@@ -911,7 +890,7 @@ out.avi – create this output file. Change it as you like, for example using an
 
 				@Override
 				public void processComplete(int exitValue) {
-					// TODO Auto-generated method stub
+					
 					
 				}
 				
@@ -927,62 +906,45 @@ out.avi – create this output file. Change it as you like, for example using an
 	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean mediaNeedsConversion, ShellCallback sc) throws Exception
 	{
 	
+		StringBuffer sbCat = new StringBuffer();
+		
+		
 		ArrayList<String> alCleanupPaths = new ArrayList<String>();
 		
-		StringBuffer cmdRun = new StringBuffer();
-		
-		cmdRun.append("cat ");
+		int tmpIdx = 0;
 		
 		for (MediaDesc vdesc : videos)
 		{
-			if (vdesc.path == null)
-				continue;
-	
-			if (!vdesc.path.endsWith(".ts"))
-			{
-				/*
-				MediaDesc mdOutMp4 = new MediaDesc ();
-				mdOutMp4.path = vdesc.path + ".mp4";
-				processVideo(vdesc, mdOutMp4, true, sc);
-				*/
-				MediaDesc mdOut = convertToMP4Stream(vdesc, vdesc.path, sc);
-				cmdRun.append(mdOut.path).append(' ');
-				
-				alCleanupPaths.add(mdOut.path);
-			}
-			else
-				cmdRun.append(vdesc.path).append(' ');
+			File fileOut = new File(mFileTemp,tmpIdx + ".ts");
+			MediaDesc mdOut = convertToMP4Stream(vdesc,fileOut.getAbsolutePath(), sc);		
+			alCleanupPaths.add(mdOut.path);
+			
+			if (sbCat.length()>0)
+				sbCat.append("|");
+			
+			sbCat.append(mdOut.path);
+			tmpIdx++;
 		}
 		
-		String mCatPath = out.path + ".full.ts";
-		
-		cmdRun.append("> ");
-		cmdRun.append(mCatPath);
+		//ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+		ArrayList<String> cmd = new ArrayList<String>();
 
-		alCleanupPaths.add(mCatPath);
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		cmd.add("-i");
+		cmd.add("\"concat:" + sbCat.toString() + "\"");
 		
-		Log.d(TAG,"cat cmd: " + cmdRun.toString());
+		cmd.add("-c");
+		cmd.add("copy");
+					
+		cmd.add("-bsf:a");
+		cmd.add("aac_adtstoasc");
 		
-		String[] cmds = {"sh","-c",cmdRun.toString()};
-		Runtime.getRuntime().exec(cmds).waitFor();
+		cmd.add(out.path);
+
+		execFFMPEG(cmd, sc);
 		
-		MediaDesc mInCat = new MediaDesc();
-		mInCat.path = mCatPath;
 		
-		if( out.videoFilter == null ) {
-			out.videoCodec = "copy";
-		}
-	
-		out.audioCodec = "copy";
-		out.audioBitStreamFilter = "aac_adtstoasc";
-		
-		//ffmpeg -y -i parts.ts -acodec copy -absf aac_adtstoasc parts.mp4
-		
-		processVideo(mInCat, out, false, sc);
-		
-		//out.path = mCatPath;
-		
-		cleanup(alCleanupPaths);
 	}
 	
 	private void cleanup (ArrayList<String> pathsToDelete)
