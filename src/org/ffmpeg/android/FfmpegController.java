@@ -932,7 +932,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add("\"concat:" + sbCat.toString() + "\"");
+		cmd.add("concat:" + sbCat.toString());
 		
 		cmd.add("-c");
 		cmd.add("copy");
