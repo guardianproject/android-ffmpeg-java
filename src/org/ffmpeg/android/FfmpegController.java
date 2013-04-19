@@ -398,8 +398,6 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		
-		cmd.add("-shortest");
-		
 		cmd.add("-i");
 		cmd.add(audioIn.path);
 		
@@ -519,26 +517,17 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("-i");
 		cmd.add(mediaPath);
 		
-		if (mediaIn.startTime != null)
-		{
-			cmd.add(FFMPEGArg.ARG_STARTTIME);
-			cmd.add(mediaIn.startTime);
-		}
-		
-		if (mediaIn.duration != null)
-		{
-			cmd.add(FFMPEGArg.ARG_DURATION);
-			cmd.add(mediaIn.duration);
-		}
-
-		cmd.add("-c");
-		cmd.add("copy");
-	
-		cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
-		cmd.add("h264_mp4toannexb");
-		
 		cmd.add("-f");
 		cmd.add("mpegts");
+		
+		cmd.add("-c");
+		cmd.add("copy");
+		
+		cmd.add("-an");
+		
+		//cmd.add(FFMPEGArg.ARG_VIDEOBITSTREAMFILTER);
+		cmd.add("-bsf:v");
+		cmd.add("h264_mp4toannexb");
 		
 		mediaOut.path = outPath;
 		
@@ -903,11 +892,49 @@ out.avi – create this output file. Change it as you like, for example using an
 	}
 
 
+	public MediaDesc trim (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
+	{
+		ArrayList<String> cmd = new ArrayList<String>();
+
+		MediaDesc mediaOut = mediaIn.clone();
+		
+		String mediaPath = mediaIn.path;
+		
+		cmd = new ArrayList<String>();
+		
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		cmd.add("-i");
+		cmd.add(mediaPath);
+		
+		cmd.add("-c");
+		cmd.add("copy");
+		
+		if (mediaIn.startTime != null)
+		{
+			cmd.add(FFMPEGArg.ARG_STARTTIME);
+			cmd.add(mediaIn.startTime);
+		}
+		
+		if (mediaIn.duration != null)
+		{
+			cmd.add(FFMPEGArg.ARG_DURATION);
+			cmd.add(mediaIn.duration);
+		}
+
+		mediaOut.path = outPath;
+		
+		cmd.add(mediaOut.path);
+
+		execFFMPEG(cmd, sc);
+		
+		return mediaOut;
+	}
+		
 	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean mediaNeedsConversion, ShellCallback sc) throws Exception
 	{
 	
 		StringBuffer sbCat = new StringBuffer();
-		
 		
 		ArrayList<String> alCleanupPaths = new ArrayList<String>();
 		
@@ -915,8 +942,12 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		for (MediaDesc vdesc : videos)
 		{
-			File fileOut = new File(mFileTemp,tmpIdx + ".ts");
-			MediaDesc mdOut = convertToMP4Stream(vdesc,fileOut.getAbsolutePath(), sc);		
+			MediaDesc mdOut = new MediaDesc();
+			File fileOut = new File(mFileTemp,tmpIdx + "-trim.mp4");
+			mdOut = trim(vdesc,fileOut.getAbsolutePath(), sc);
+				
+			fileOut = new File(mFileTemp,tmpIdx + ".ts");
+			mdOut = convertToMP4Stream(mdOut,fileOut.getAbsolutePath(), sc);		
 			alCleanupPaths.add(mdOut.path);
 			
 			if (sbCat.length()>0)
@@ -936,9 +967,10 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		cmd.add("-c");
 		cmd.add("copy");
-					
-		cmd.add("-bsf:a");
-		cmd.add("aac_adtstoasc");
+		
+		cmd.add("-an");
+		//cmd.add("-bsf:a");
+		//cmd.add("aac_adtstoasc");
 		
 		cmd.add(out.path);
 
