@@ -58,7 +58,7 @@ public class FfmpegController {
 	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
 	
 		String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
-		Runtime.getRuntime().exec("chmod 700 " +ffmpegBin);
+		Runtime.getRuntime().exec("chmod 777 " +ffmpegBin);
     	
 		execProcess (cmd, sc);
 	}
@@ -76,7 +76,7 @@ public class FfmpegController {
 			cmdlog.append(' ');
 		}
 		
-		Log.v(TAG,cmdlog.toString());
+		Log.d(TAG,cmdlog.toString());
 		
 	//	pb.redirectErrorStream(true);
     	Process process = pb.start();    
@@ -240,15 +240,12 @@ public class FfmpegController {
 	}
 	
 	
-	public MediaDesc createSlideshowFromImagesAndAudio (ArrayList<MediaDesc> images, MediaDesc audio, int width, int height, int durationPerSlide, String bitrate, String outPath, ShellCallback sc) throws Exception
+	public MediaDesc createSlideshowFromImagesAndAudio (ArrayList<MediaDesc> images, MediaDesc audio,  MediaDesc out, int durationPerSlide, ShellCallback sc) throws Exception
 	{
 
 		final String imageBasePath = new File(mFileTemp,"image-").getAbsolutePath();
 		final String imageBaseVariablePath = imageBasePath + "%03d.jpg";
 		
-		MediaDesc result = new MediaDesc ();
-
-		result.path = outPath;
 		
 		ArrayList<String> cmd = new ArrayList<String>();
 		
@@ -265,10 +262,10 @@ public class FfmpegController {
 		cmd.add("-i");
 		cmd.add(imageCover.path);
 		
-		if (width != -1 && height != -1)
+		if (out.width != -1 && out.height != -1)
 		{
 			cmd.add("-s");
-			cmd.add(width + "x" + height);
+			cmd.add(out.width + "x" + out.height);
 		}
 		
 		newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
@@ -285,10 +282,10 @@ public class FfmpegController {
 			cmd.add("-i");
 			cmd.add(image.path);
 			
-			if (width != -1 && height != -1)
+			if (out.width != -1 && out.height != -1)
 			{
 				cmd.add("-s");
-				cmd.add(width + "x" + height);
+				cmd.add(out.width + "x" + out.height);
 			}
 			
 			newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
@@ -358,17 +355,25 @@ public class FfmpegController {
 		cmd.add("-2");//experimental
 		
 		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-		cmd.add("libx264");
-
-		cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-		cmd.add(bitrate);
 		
-		cmd.add(result.path);
+
+		if (out.videoCodec != null)
+			cmd.add(out.videoCodec);
+		else
+			cmd.add("mpeg4");
+
+		if (out.videoBitrate != -1)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+			cmd.add(out.videoBitrate + "k");
+		}
+		
+		cmd.add(out.path);
 		
 		
 		execFFMPEG(cmd, sc);
 		
-		return result;
+		return out;
 	}
 	
 	/*
@@ -422,12 +427,31 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(out.videoBitrate + "k");
 		}
 		
+		if (out.videoFps != null)
+		{
+			cmd.add(FFMPEGArg.ARG_FRAMERATE);
+			cmd.add(out.videoFps);
+		}
+		
 		if (out.audioBitrate != -1)
 		{
 			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
 			cmd.add(out.audioBitrate + "k");
 		}
-
+		
+		if (out.width > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_SIZE);
+			cmd.add(out.width + "x" + out.height);
+		
+		}
+		
+		if (out.format != null)
+		{
+			cmd.add("-f");
+			cmd.add(out.format);
+		}
+		
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 
@@ -907,8 +931,8 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("-i");
 		cmd.add(mediaPath);
 		
-		cmd.add("-c");
-		cmd.add("copy");
+	//	cmd.add("-c");
+	//	cmd.add("copy");
 		
 		if (mediaIn.startTime != null)
 		{
@@ -922,6 +946,9 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(mediaIn.duration);
 		}
 
+		cmd.add("-strict");
+		cmd.add("-2");//experimental
+	
 		mediaOut.path = outPath;
 		
 		cmd.add(mediaOut.path);

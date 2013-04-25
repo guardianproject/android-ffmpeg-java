@@ -273,7 +273,7 @@ public class SoxController {
 		return String.format("0:0:%s", seconds_frac);
 	}
 
-	private int execSox(List<String> cmd, ShellCallback sc) throws IOException,
+	public int execSox(List<String> cmd, ShellCallback sc) throws IOException,
 			InterruptedException {
 
 		String soxBin = new File(fileBinDir, "sox").getAbsolutePath();
