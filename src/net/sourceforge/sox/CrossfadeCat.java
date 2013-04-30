@@ -1,6 +1,7 @@
 package net.sourceforge.sox;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.util.Log;
@@ -36,7 +37,7 @@ public class CrossfadeCat {
 		mFinalMix = outFile;
 	}
 
-	public boolean start() {
+	public boolean start() throws IOException {
 		// find length of first file
 		double length = mController.getLength(mFirstFile);
 
@@ -73,7 +74,7 @@ public class CrossfadeCat {
 		files.add(fadedOne);
 		files.add(fadedTwo);
 
-		String crossfaded = new File(mFirstFile).getAbsolutePath() + "-x-" + new File(mSecondFile).getName() +".wav";
+		String crossfaded = new File(mFirstFile).getCanonicalPath() + "-x-" + new File(mSecondFile).getName() +".wav";
 		crossfaded = mController.combineMix(files, crossfaded);
 		if( crossfaded == null )
 			return abort();

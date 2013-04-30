@@ -14,6 +14,7 @@ import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.ffmpeg.android.ShellUtils.ShellCallback;
 
@@ -51,13 +52,13 @@ public class FfmpegController {
 			bi.installFromRaw();
 		}
 		
-		ffmpegBin = fileBin.getAbsolutePath();
+		ffmpegBin = fileBin.getCanonicalPath();
 
 	}
 	
 	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
 	
-		String ffmpegBin = new File(fileBinDir,"ffmpeg").getAbsolutePath();
+		String ffmpegBin = new File(fileBinDir,"ffmpeg").getCanonicalPath();
 		Runtime.getRuntime().exec("chmod 777 " +ffmpegBin);
     	
 		execProcess (cmd, sc);
@@ -243,7 +244,7 @@ public class FfmpegController {
 	public MediaDesc createSlideshowFromImagesAndAudio (ArrayList<MediaDesc> images, MediaDesc audio,  MediaDesc out, int durationPerSlide, ShellCallback sc) throws Exception
 	{
 
-		final String imageBasePath = new File(mFileTemp,"image-").getAbsolutePath();
+		final String imageBasePath = new File(mFileTemp,"image-").getCanonicalPath();
 		final String imageBaseVariablePath = imageBasePath + "%03d.jpg";
 		
 		
@@ -260,7 +261,7 @@ public class FfmpegController {
 		cmd.add("-y");
 		
 		cmd.add("-i");
-		cmd.add(imageCover.path);
+		cmd.add(new File(imageCover.path).getCanonicalPath());
 		
 		if (out.width != -1 && out.height != -1)
 		{
@@ -268,7 +269,7 @@ public class FfmpegController {
 			cmd.add(out.width + "x" + out.height);
 		}
 		
-		newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
+		newImagePath = imageBasePath + String.format(Locale.US, "%03d", imageCounter++) + ".jpg";
 		cmd.add(newImagePath);
 		
 		execFFMPEG(cmd, sc);
@@ -280,7 +281,7 @@ public class FfmpegController {
 			cmd.add("-y");
 			
 			cmd.add("-i");
-			cmd.add(image.path);
+			cmd.add(new File(image.path).getCanonicalPath());
 			
 			if (out.width != -1 && out.height != -1)
 			{
@@ -288,7 +289,7 @@ public class FfmpegController {
 				cmd.add(out.width + "x" + out.height);
 			}
 			
-			newImagePath = imageBasePath + String.format("%03d", imageCounter++) + ".jpg";
+			newImagePath = imageBasePath + String.format(Locale.US, "%03d", imageCounter++) + ".jpg";
 			cmd.add(newImagePath);
 			
 			execFFMPEG(cmd, sc);
@@ -317,7 +318,7 @@ public class FfmpegController {
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 	
-		String fileTempMpg = new File(mFileTemp,"tmp.mpg").getAbsolutePath();
+		String fileTempMpg = new File(mFileTemp,"tmp.mpg").getCanonicalPath();
 		
 		cmd.add(fileTempMpg);
 		
@@ -368,7 +369,7 @@ public class FfmpegController {
 			cmd.add(out.videoBitrate + "k");
 		}
 		
-		cmd.add(out.path);
+		cmd.add(new File(out.path).getCanonicalPath());
 		
 		
 		execFFMPEG(cmd, sc);
@@ -526,7 +527,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	//ffmpeg -i input1.mp4 -vcodec copy -vbsf h264_mp4toannexb -acodec copy part1.ts
 	//ffmpeg -i input2.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate2.ts
 
-	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
+	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String startTime, String duration, String outPath, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
@@ -538,6 +539,19 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
+
+		if (startTime != null)
+		{
+			cmd.add(FFMPEGArg.ARG_STARTTIME);
+			cmd.add(startTime);
+		}
+		
+		if (duration != null)
+		{
+			cmd.add(FFMPEGArg.ARG_DURATION);
+			cmd.add(duration);
+		}
+		
 		cmd.add("-i");
 		cmd.add(mediaPath);
 		
@@ -842,7 +856,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(audioFormat); //wav
 		
 		//everything to WAV!
-		cmd.add(audioOutPath.getAbsolutePath());
+		cmd.add(audioOutPath.getCanonicalPath());
 
 		execFFMPEG(cmd, sc);
 		
@@ -873,11 +887,11 @@ out.avi – create this output file. Change it as you like, for example using an
 		}
 	}
 	
-	public int killVideoProcessor (boolean asRoot, boolean waitFor)
+	public int killVideoProcessor (boolean asRoot, boolean waitFor) throws IOException
 	{
 		int killDelayMs = 300;
 
-		String ffmpegBin = new File(mContext.getDir("bin",0),"ffmpeg").getAbsolutePath();
+		String ffmpegBin = new File(mContext.getDir("bin",0),"ffmpeg").getCanonicalPath();
 
 		int result = -1;
 		
@@ -916,7 +930,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	}
 
 
-	public MediaDesc trim (MediaDesc mediaIn, String outPath, ShellCallback sc) throws Exception
+	public MediaDesc trim (MediaDesc mediaIn, boolean withSound, String outPath, ShellCallback sc) throws Exception
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
@@ -928,12 +942,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
-		cmd.add("-i");
-		cmd.add(mediaPath);
-		
-	//	cmd.add("-c");
-	//	cmd.add("copy");
-		
+				
 		if (mediaIn.startTime != null)
 		{
 			cmd.add(FFMPEGArg.ARG_STARTTIME);
@@ -946,6 +955,12 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(mediaIn.duration);
 		}
 
+		cmd.add("-i");
+		cmd.add(mediaPath);
+
+		if (!withSound)
+			cmd.add("-an");
+		
 		cmd.add("-strict");
 		cmd.add("-2");//experimental
 	
@@ -958,30 +973,45 @@ out.avi – create this output file. Change it as you like, for example using an
 		return mediaOut;
 	}
 		
-	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean mediaNeedsConversion, ShellCallback sc) throws Exception
+	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preconvertClipsToMP4, ShellCallback sc) throws Exception
 	{
 	
 		StringBuffer sbCat = new StringBuffer();
 		
-		ArrayList<String> alCleanupPaths = new ArrayList<String>();
+		ArrayList<File> alCleanupPaths = new ArrayList<File>();
 		
 		int tmpIdx = 0;
 		
 		for (MediaDesc vdesc : videos)
 		{
-			MediaDesc mdOut = new MediaDesc();
-			File fileOut = new File(mFileTemp,tmpIdx + "-trim.mp4");
-			mdOut = trim(vdesc,fileOut.getAbsolutePath(), sc);
+			
+			MediaDesc mdOut = null;
+			
+			if (preconvertClipsToMP4)
+			{
+				File fileOut = new File(mFileTemp,tmpIdx + "-trim.mp4");
+				boolean withSound = false;
+				mdOut = trim(vdesc,withSound,fileOut.getCanonicalPath(), sc);
+			
+				fileOut = new File(mFileTemp,tmpIdx + ".ts");
+				mdOut = convertToMP4Stream(mdOut,null,null,fileOut.getCanonicalPath(), sc);		
+				alCleanupPaths.add(new File(mdOut.path));
+			}
+			else
+			{
+				File fileOut = new File(mFileTemp,tmpIdx + ".ts");
+				mdOut = convertToMP4Stream(vdesc,vdesc.startTime,vdesc.duration,fileOut.getCanonicalPath(), sc);		
+				alCleanupPaths.add(new File(mdOut.path));
+			}
+			
+			if (mdOut != null)
+			{
+				if (sbCat.length()>0)
+					sbCat.append("|");
 				
-			fileOut = new File(mFileTemp,tmpIdx + ".ts");
-			mdOut = convertToMP4Stream(mdOut,fileOut.getAbsolutePath(), sc);		
-			alCleanupPaths.add(mdOut.path);
-			
-			if (sbCat.length()>0)
-				sbCat.append("|");
-			
-			sbCat.append(mdOut.path);
-			tmpIdx++;
+				sbCat.append(new File(mdOut.path).getCanonicalPath());
+				tmpIdx++;
+			}
 		}
 		
 		//ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
@@ -999,9 +1029,47 @@ out.avi – create this output file. Change it as you like, for example using an
 		//cmd.add("-bsf:a");
 		//cmd.add("aac_adtstoasc");
 		
+		
+		out.width = 640;
+		out.height = 480;
+		out.videoBitrate = 1000;
+		
+		
+		if (out.videoBitrate > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
+			cmd.add(out.videoBitrate + "k");
+		}
+		
+		if (out.width > 0)
+		{
+			cmd.add(FFMPEGArg.ARG_SIZE);
+			cmd.add(out.width + "x" + out.height);
+		
+		}
+		if (out.videoFps != null)
+		{
+			cmd.add(FFMPEGArg.ARG_FRAMERATE);
+			cmd.add(out.videoFps);
+		}
+		
+		if (out.videoCodec != null)
+		{
+			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
+			cmd.add(out.videoCodec);
+		}
+		
+
 		cmd.add(out.path);
 
 		execFFMPEG(cmd, sc);
+		
+		File fileOut = new File(out.path);
+		
+		if ((!fileOut.exists()) || fileOut.length() == 0)
+		{
+			throw new Exception("There was a problem rendering the video: " + fileOut.getCanonicalPath());
+		}
 		
 		
 	}
