@@ -7,9 +7,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import org.ffmpeg.android.BinaryInstaller;
 import org.ffmpeg.android.ShellUtils.ShellCallback;
@@ -34,7 +36,7 @@ public class SoxController {
 			bi.installFromRaw();
 		}
 
-		soxBin = new File(fileBinDir,"sox").getAbsolutePath();
+		soxBin = new File(fileBinDir,"sox").getCanonicalPath();
 
 	}
 
@@ -112,11 +114,11 @@ public class SoxController {
 	 * @param length (optional)
 	 * @return path to trimmed audio
 	 */
-	public String trimAudio(String path, String start, String length) {
+	public String trimAudio(String path, String start, String length) throws IOException {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		File file = new File(path);
-		String outFile = file.getAbsolutePath() + "_trimmed.wav";
+		String outFile = file.getCanonicalPath() + "_trimmed.wav";
 		cmd.add(soxBin);
 		cmd.add(path);
 		cmd.add("-e");
@@ -156,7 +158,7 @@ public class SoxController {
 	 * @param fadeOutLength (optional)
 	 * @return
 	 */
-	public String fadeAudio(String path, String type, String fadeInLength, String stopTime, String fadeOutLength ) {
+	public String fadeAudio(String path, String type, String fadeInLength, String stopTime, String fadeOutLength ) throws IOException {
 
 		final List<String> curves = Arrays.asList( new String[]{ "q", "h", "t", "l", "p"} );
 
@@ -166,7 +168,7 @@ public class SoxController {
 		}
 
 		File file = new File(path);
-		String outFile = file.getAbsolutePath() + "_faded.wav";
+		String outFile = file.getCanonicalPath() + "_faded.wav";
 
 		ArrayList<String> cmd = new ArrayList<String>();
 		cmd.add(soxBin);
@@ -269,14 +271,16 @@ public class SoxController {
 	 * @param seconds
 	 */
 	public String formatTimePeriod(double seconds) {
-		String seconds_frac = new DecimalFormat("#.##").format(seconds);
-		return String.format("0:0:%s", seconds_frac);
+		DecimalFormat df = new DecimalFormat("#.##");
+		df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
+		 String seconds_frac = df.format(seconds);
+		return String.format(Locale.US, "0:0:%s", seconds_frac);
 	}
 
-	private int execSox(List<String> cmd, ShellCallback sc) throws IOException,
+	public int execSox(List<String> cmd, ShellCallback sc) throws IOException,
 			InterruptedException {
 
-		String soxBin = new File(fileBinDir, "sox").getAbsolutePath();
+		String soxBin = new File(fileBinDir, "sox").getCanonicalPath();
 		Runtime.getRuntime().exec("chmod 700 " + soxBin);
 		return execProcess(cmd, sc);
 	}

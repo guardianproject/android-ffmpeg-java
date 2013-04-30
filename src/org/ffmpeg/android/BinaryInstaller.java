@@ -105,7 +105,7 @@ public class BinaryInstaller  {
         stmOut.close();
         stm.close();
         
-		Runtime.getRuntime().exec("chmod "+mode+" "+outFile.getAbsolutePath());
+		Runtime.getRuntime().exec("chmod "+mode+" "+outFile.getCanonicalPath());
 
         
         return true;
@@ -184,7 +184,7 @@ public class BinaryInstaller  {
 	 */
 	private static void copyRawFile(Context ctx, int resid, File file, String mode, boolean isZipd) throws IOException, InterruptedException
 	{
-		final String abspath = file.getAbsolutePath();
+		final String abspath = file.getCanonicalPath();
 		// Write the iptables binary
 		final FileOutputStream out = new FileOutputStream(file);
 		InputStream is = ctx.getResources().openRawResource(resid);
