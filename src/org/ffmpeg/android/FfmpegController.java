@@ -56,18 +56,22 @@ public class FfmpegController {
 
 	}
 	
-	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
+	private void execFFMPEG (List<String> cmd, ShellCallback sc, File fileExec) throws IOException, InterruptedException {
 	
 		String ffmpegBin = new File(fileBinDir,"ffmpeg").getCanonicalPath();
 		Runtime.getRuntime().exec("chmod 777 " +ffmpegBin);
     	
-		execProcess (cmd, sc);
+		execProcess (cmd, sc, fileExec);
 	}
 	
-	private int execProcess(List<String> cmds, ShellCallback sc) throws IOException, InterruptedException {		
+	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
+		execFFMPEG (cmd, sc, fileBinDir);
+	}
+	
+	private int execProcess(List<String> cmds, ShellCallback sc, File fileExec) throws IOException, InterruptedException {		
         
 		ProcessBuilder pb = new ProcessBuilder(cmds);
-		pb.directory(fileBinDir);
+		pb.directory(fileExec);
 		
 		StringBuffer cmdlog = new StringBuffer();
 
@@ -976,6 +980,9 @@ out.avi – create this output file. Change it as you like, for example using an
 	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preconvertClipsToMP4, ShellCallback sc) throws Exception
 	{
 	
+
+		File fileExportOut = new File(out.path);
+		
 		StringBuffer sbCat = new StringBuffer();
 		
 		ArrayList<File> alCleanupPaths = new ArrayList<File>();
@@ -1009,7 +1016,7 @@ out.avi – create this output file. Change it as you like, for example using an
 				if (sbCat.length()>0)
 					sbCat.append("|");
 				
-				sbCat.append(new File(mdOut.path).getCanonicalPath());
+				sbCat.append(new File(mdOut.path).getName());
 				tmpIdx++;
 			}
 		}
@@ -1026,14 +1033,6 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("copy");
 		
 		cmd.add("-an");
-		//cmd.add("-bsf:a");
-		//cmd.add("aac_adtstoasc");
-		
-		
-		out.width = 640;
-		out.height = 480;
-		out.videoBitrate = 1000;
-		
 		
 		if (out.videoBitrate > 0)
 		{
@@ -1058,17 +1057,15 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
 			cmd.add(out.videoCodec);
 		}
-		
 
-		cmd.add(out.path);
 
-		execFFMPEG(cmd, sc);
+		cmd.add(fileExportOut.getName());
+
+		execFFMPEG(cmd, sc, fileExportOut.getParentFile().getCanonicalFile());
 		
-		File fileOut = new File(out.path);
-		
-		if ((!fileOut.exists()) || fileOut.length() == 0)
+		if ((!fileExportOut.exists()) || fileExportOut.length() == 0)
 		{
-			throw new Exception("There was a problem rendering the video: " + fileOut.getCanonicalPath());
+			throw new Exception("There was a problem rendering the video: " + fileExportOut.getCanonicalPath());
 		}
 		
 		
