@@ -15,6 +15,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringTokenizer;
 
 import org.ffmpeg.android.ShellUtils.ShellCallback;
 
@@ -108,7 +109,43 @@ public class FfmpegController {
 
 
 		
-}
+	}
+	
+
+	private int execProcess(String cmd, ShellCallback sc, File fileExec) throws IOException, InterruptedException {		
+        
+		ProcessBuilder pb = new ProcessBuilder(cmd);
+		pb.directory(fileExec);
+
+		Log.d(TAG,cmd);
+		
+	//	pb.redirectErrorStream(true);
+    	Process process = pb.start();    
+    	
+    
+    	  // any error message?
+        StreamGobbler errorGobbler = new 
+            StreamGobbler(process.getErrorStream(), "ERROR", sc);            
+        
+    	 // any output?
+        StreamGobbler outputGobbler = new 
+            StreamGobbler(process.getInputStream(), "OUTPUT", sc);
+            
+        // kick them off
+        errorGobbler.start();
+        outputGobbler.start();
+     
+
+        int exitVal = process.waitFor();
+        
+        sc.processComplete(exitVal);
+        
+        return exitVal;
+
+
+		
+	}
+	
 	
 	public class FFMPEGArg
 	{
@@ -418,13 +455,18 @@ out.avi – create this output file. Change it as you like, for example using an
 		if (out.audioCodec != null)
 			cmd.add(out.audioCodec);
 		else
+		{
 			cmd.add("copy");
+			
+		}
 
 		cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
 		if (out.videoCodec != null)
 			cmd.add(out.videoCodec);
 		else
+		{
 			cmd.add("copy");
+		}
 		
 		if (out.videoBitrate != -1)
 		{
@@ -977,7 +1019,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		return mediaOut;
 	}
 		
-	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preconvertClipsToMP4, ShellCallback sc) throws Exception
+	public void concatAndTrimFilesMP4Stream (ArrayList<MediaDesc> videos,MediaDesc out, boolean preconvertClipsToMP4, boolean useCatCmd, ShellCallback sc) throws Exception
 	{
 	
 
@@ -985,9 +1027,8 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		StringBuffer sbCat = new StringBuffer();
 		
-		ArrayList<File> alCleanupPaths = new ArrayList<File>();
-		
 		int tmpIdx = 0;
+		
 		
 		for (MediaDesc vdesc : videos)
 		{
@@ -997,18 +1038,19 @@ out.avi – create this output file. Change it as you like, for example using an
 			if (preconvertClipsToMP4)
 			{
 				File fileOut = new File(mFileTemp,tmpIdx + "-trim.mp4");
+				fileOut.delete();
 				boolean withSound = false;
 				mdOut = trim(vdesc,withSound,fileOut.getCanonicalPath(), sc);
 			
 				fileOut = new File(mFileTemp,tmpIdx + ".ts");
+				fileOut.delete();
 				mdOut = convertToMP4Stream(mdOut,null,null,fileOut.getCanonicalPath(), sc);		
-				alCleanupPaths.add(new File(mdOut.path));
 			}
 			else
 			{
 				File fileOut = new File(mFileTemp,tmpIdx + ".ts");
+				fileOut.delete();
 				mdOut = convertToMP4Stream(vdesc,vdesc.startTime,vdesc.duration,fileOut.getCanonicalPath(), sc);		
-				alCleanupPaths.add(new File(mdOut.path));
 			}
 			
 			if (mdOut != null)
@@ -1016,52 +1058,73 @@ out.avi – create this output file. Change it as you like, for example using an
 				if (sbCat.length()>0)
 					sbCat.append("|");
 				
-				sbCat.append(new File(mdOut.path).getName());
+				sbCat.append(new File(mdOut.path).getCanonicalPath());
 				tmpIdx++;
 			}
 		}
 		
-		//ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
-		ArrayList<String> cmd = new ArrayList<String>();
-
-		cmd.add(ffmpegBin);
-		cmd.add("-y");
-		cmd.add("-i");
-		cmd.add("concat:" + sbCat.toString());
-		
-		cmd.add("-c");
-		cmd.add("copy");
-		
-		cmd.add("-an");
-		
-		if (out.videoBitrate > 0)
+		if (useCatCmd)
 		{
-			cmd.add(FFMPEGArg.ARG_BITRATE_VIDEO);
-			cmd.add(out.videoBitrate + "k");
-		}
-		
-		if (out.width > 0)
-		{
-			cmd.add(FFMPEGArg.ARG_SIZE);
-			cmd.add(out.width + "x" + out.height);
-		
-		}
-		if (out.videoFps != null)
-		{
-			cmd.add(FFMPEGArg.ARG_FRAMERATE);
-			cmd.add(out.videoFps);
-		}
-		
-		if (out.videoCodec != null)
-		{
-			cmd.add(FFMPEGArg.ARG_VIDEOCODEC);
-			cmd.add(out.videoCodec);
-		}
+			//cat 0.ts 1.ts > foo.ts
+			StringBuffer cmdBuff = new StringBuffer();
+			
+			cmdBuff.append("/system/bin/cat ");
+			
+			StringTokenizer st = new StringTokenizer(sbCat.toString(),"|");
+			
+			while(st.hasMoreTokens())
+				cmdBuff.append(st.nextToken()).append(" ");
+			
+			cmdBuff.append("> ");
 
+			cmdBuff.append(fileExportOut.getCanonicalPath() + ".ts");
 
-		cmd.add(fileExportOut.getName());
+			Log.d(TAG,"concat: " + cmdBuff.toString());
+			
+			Runtime.getRuntime().exec(cmdBuff.toString());
 
-		execFFMPEG(cmd, sc, fileExportOut.getParentFile().getCanonicalFile());
+			ArrayList<String> cmd = new ArrayList<String>();
+				
+			cmd = new ArrayList<String>();
+				
+			cmd.add(ffmpegBin);
+			cmd.add("-y");
+			cmd.add("-i");
+
+			cmd.add(fileExportOut.getCanonicalPath() + ".ts");
+			
+			cmd.add("-c");
+			cmd.add("copy");
+			
+			cmd.add("-an");
+		
+			cmd.add(fileExportOut.getCanonicalPath());
+			
+			execFFMPEG(cmd, sc, null);
+
+			
+		}
+		else
+		{
+		
+			//ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+			ArrayList<String> cmd = new ArrayList<String>();
+	
+			cmd.add(ffmpegBin);
+			cmd.add("-y");
+			cmd.add("-i");
+			cmd.add("concat:" + sbCat.toString());
+			
+			cmd.add("-c");
+			cmd.add("copy");
+			
+			cmd.add("-an");
+			
+			cmd.add(fileExportOut.getName());
+	
+			execFFMPEG(cmd, sc);
+			
+		}
 		
 		if ((!fileExportOut.exists()) || fileExportOut.length() == 0)
 		{
