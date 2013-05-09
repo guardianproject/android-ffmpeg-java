@@ -32,6 +32,8 @@ public class FfmpegController {
 	
 	private File mFileTemp;
 	
+	private String mCmdCat;
+	
 	public FfmpegController(Context context, File fileTemp) throws FileNotFoundException, IOException {
 		mContext = context;
 		mFileTemp = fileTemp;
@@ -54,6 +56,8 @@ public class FfmpegController {
 		}
 		
 		ffmpegBin = fileBin.getCanonicalPath();
+		
+		mCmdCat = "sh cat";
 
 	}
 	
@@ -84,22 +88,24 @@ public class FfmpegController {
 		
 		Log.d(TAG,cmdlog.toString());
 		
+		pb.redirectErrorStream(true);
 	//	pb.redirectErrorStream(true);
     	Process process = pb.start();    
-    	
     
+    	
     	  // any error message?
+    	/*
         StreamGobbler errorGobbler = new 
             StreamGobbler(process.getErrorStream(), "ERROR", sc);            
-        
+        */
+    	
     	 // any output?
         StreamGobbler outputGobbler = new 
             StreamGobbler(process.getInputStream(), "OUTPUT", sc);
-            
+
         // kick them off
-        errorGobbler.start();
+     //   errorGobbler.start();
         outputGobbler.start();
-     
 
         int exitVal = process.waitFor();
         
@@ -201,7 +207,7 @@ public class FfmpegController {
 		}
 		
 		cmd.add("-i");
-		cmd.add(in.path);
+		cmd.add(new File(in.path).getCanonicalPath());
 		
 		if (out.videoBitrate > 0)
 		{
@@ -275,7 +281,7 @@ public class FfmpegController {
 			cmd.add("-2");//experimental
 		}
 		
-		cmd.add(out.path);
+		cmd.add(new File(out.path).getCanonicalPath());
 
 		execFFMPEG(cmd, sc);
 	    
@@ -377,7 +383,7 @@ public class FfmpegController {
 		if (audio != null && audio.path != null)
 		{
 			cmd.add("-i");
-			cmd.add(audio.path);
+			cmd.add(new File(audio.path).getCanonicalPath());
 			
 			cmd.add("-map");
 			cmd.add("0:0");
@@ -444,12 +450,16 @@ out.avi – create this output file. Change it as you like, for example using an
 
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
+
+		cmd.add("-i");
+		cmd.add(new File(videoIn.path).getCanonicalPath());
 		
 		cmd.add("-i");
-		cmd.add(audioIn.path);
+		cmd.add(new File(audioIn.path).getCanonicalPath());
 		
-		cmd.add("-i");
-		cmd.add(videoIn.path);
+
+		cmd.add("-strict");
+		cmd.add("-2");//experimental
 		
 		cmd.add(FFMPEGArg.ARG_AUDIOCODEC);
 		if (out.audioCodec != null)
@@ -486,6 +496,9 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(out.audioBitrate + "k");
 		}
 		
+		cmd.add("-cutoff");
+		cmd.add("15000");
+		
 		if (out.width > 0)
 		{
 			cmd.add(FFMPEGArg.ARG_SIZE);
@@ -498,11 +511,9 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add("-f");
 			cmd.add(out.format);
 		}
-		
-		cmd.add("-strict");
-		cmd.add("-2");//experimental
 
-		cmd.add(out.path);
+		File fileOut = new File(out.path);
+		cmd.add(fileOut.getCanonicalPath());
 		
 		execFFMPEG(cmd, sc);
 		
@@ -528,7 +539,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("1");
 		
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		cmd.add(FFMPEGArg.ARG_FRAMERATE);
 		cmd.add(mediaIn.videoFps);
@@ -562,7 +573,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		result.videoFps = mediaIn.videoFps;
 		result.mimeType = "video/mp4";
 
-		cmd.add(result.path);
+		cmd.add(new File(result.path).getCanonicalPath());
 		
 		execFFMPEG(cmd, sc);
 		
@@ -574,12 +585,13 @@ out.avi – create this output file. Change it as you like, for example using an
 	//ffmpeg -i input2.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate2.ts
 
 	public MediaDesc convertToMP4Stream (MediaDesc mediaIn, String startTime, String duration, String outPath, ShellCallback sc) throws Exception
-	{
+	{ 
 		ArrayList<String> cmd = new ArrayList<String>();
 
-		MediaDesc mediaOut = mediaIn.clone();
+		MediaDesc mediaOut = new MediaDesc();
+		mediaOut.path = outPath;
 		
-		String mediaPath = mediaIn.path;
+		String mediaPath = new File(mediaIn.path).getCanonicalPath();
 		
 		cmd = new ArrayList<String>();
 		
@@ -613,7 +625,8 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("-bsf:v");
 		cmd.add("h264_mp4toannexb");
 		
-		mediaOut.path = outPath;
+		File fileOut = new File(mediaOut.path);
+		mediaOut.path = fileOut.getCanonicalPath();
 		
 		cmd.add(mediaOut.path);
 
@@ -630,7 +643,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		if (mediaIn.startTime != null)
 		{
@@ -652,8 +665,10 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		cmd.add("-vn");
 		
-		MediaDesc mediaOut = mediaIn.clone();
-		mediaOut.path = outPath;
+		MediaDesc mediaOut = new MediaDesc();
+		
+		File fileOut = new File(outPath);
+		mediaOut.path = fileOut.getCanonicalPath();
 		
 		cmd.add(mediaOut.path);
 
@@ -669,7 +684,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		if (mediaIn.startTime != null)
 		{
@@ -700,8 +715,10 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("-y");
 		cmd.add("-strict");
 		cmd.add("-2");
+
+		File fileOut = new File(mediaOut.path);
 		
-		cmd.add(mediaOut.path);
+		cmd.add(fileOut.getCanonicalPath());
 
 		execFFMPEG(cmd, sc);
 		
@@ -715,7 +732,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		if (mediaIn.startTime != null)
 		{
@@ -730,8 +747,12 @@ out.avi – create this output file. Change it as you like, for example using an
 		}
 		
 		
-		MediaDesc mediaOut = mediaIn.clone();
-		mediaOut.path = outPath;
+		MediaDesc mediaOut = new MediaDesc();
+		
+
+		File fileOut = new File(outPath);
+		 
+		mediaOut.path = fileOut.getCanonicalPath();
 		
 		cmd.add(mediaOut.path);
 
@@ -747,7 +768,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mediaIn.path);
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		if (mediaIn.startTime != null)
 		{
@@ -770,7 +791,10 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add("mpeg");
 		
 		MediaDesc mediaOut = mediaIn.clone();
-		mediaOut.path = outPath + ".mpg";
+		
+		File fileOut = new File(outPath);
+		
+		mediaOut.path = fileOut.getCanonicalPath();
 		
 		cmd.add(mediaOut.path);
 
@@ -838,7 +862,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		StringBuffer cmdRun = new StringBuffer();
 		
-		cmdRun.append("cat ");
+		cmdRun.append(mCmdCat);
 		
 		idx = 0;
 		
@@ -881,7 +905,7 @@ out.avi – create this output file. Change it as you like, for example using an
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
 		cmd.add("-i");
-		cmd.add(mdesc.path);
+		cmd.add(new File(mdesc.path).getCanonicalPath());
 		
 		cmd.add("-vn");
 		
@@ -896,7 +920,6 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add("-t");
 			cmd.add(mdesc.duration);
 		}
-		
 					
 		cmd.add("-f");
 		cmd.add(audioFormat); //wav
@@ -980,7 +1003,7 @@ out.avi – create this output file. Change it as you like, for example using an
 	{
 		ArrayList<String> cmd = new ArrayList<String>();
 
-		MediaDesc mediaOut = mediaIn.clone();
+		MediaDesc mediaOut = new MediaDesc();
 		
 		String mediaPath = mediaIn.path;
 		
@@ -1038,18 +1061,24 @@ out.avi – create this output file. Change it as you like, for example using an
 			if (preconvertClipsToMP4)
 			{
 				File fileOut = new File(mFileTemp,tmpIdx + "-trim.mp4");
-				fileOut.delete();
+				if (fileOut.exists())
+					fileOut.delete();
+				
 				boolean withSound = false;
+				
 				mdOut = trim(vdesc,withSound,fileOut.getCanonicalPath(), sc);
 			
 				fileOut = new File(mFileTemp,tmpIdx + ".ts");
-				fileOut.delete();
+				if (fileOut.exists())
+					fileOut.delete();
+				
 				mdOut = convertToMP4Stream(mdOut,null,null,fileOut.getCanonicalPath(), sc);		
 			}
 			else
 			{
 				File fileOut = new File(mFileTemp,tmpIdx + ".ts");
-				fileOut.delete();
+				if (fileOut.exists())
+					fileOut.delete();
 				mdOut = convertToMP4Stream(vdesc,vdesc.startTime,vdesc.duration,fileOut.getCanonicalPath(), sc);		
 			}
 			
@@ -1062,13 +1091,17 @@ out.avi – create this output file. Change it as you like, for example using an
 				tmpIdx++;
 			}
 		}
+
+		File fileExportOutTs = new File(fileExportOut.getCanonicalPath() + ".ts");
 		
 		if (useCatCmd)
 		{
+
 			//cat 0.ts 1.ts > foo.ts
 			StringBuffer cmdBuff = new StringBuffer();
 			
-			cmdBuff.append("/system/bin/cat ");
+			cmdBuff.append(mCmdCat);
+			cmdBuff.append(" ");
 			
 			StringTokenizer st = new StringTokenizer(sbCat.toString(),"|");
 			
@@ -1076,7 +1109,7 @@ out.avi – create this output file. Change it as you like, for example using an
 				cmdBuff.append(st.nextToken()).append(" ");
 			
 			cmdBuff.append("> ");
-
+			
 			cmdBuff.append(fileExportOut.getCanonicalPath() + ".ts");
 
 			Log.d(TAG,"concat: " + cmdBuff.toString());
@@ -1120,7 +1153,7 @@ out.avi – create this output file. Change it as you like, for example using an
 			
 			cmd.add("-an");
 			
-			cmd.add(fileExportOut.getName());
+			cmd.add(fileExportOut.getCanonicalPath());
 	
 			execFFMPEG(cmd, sc);
 			
@@ -1134,15 +1167,6 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 	}
 	
-	private void cleanup (ArrayList<String> pathsToDelete)
-	{
-		for (String path : pathsToDelete)
-		{
-			File fileDel = new File(path);
-			fileDel.delete();
-		}
-	}
-
 	class StreamGobbler extends Thread
 	{
 	    InputStream is;

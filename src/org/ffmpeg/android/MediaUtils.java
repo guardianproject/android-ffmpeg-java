@@ -8,8 +8,9 @@ public class MediaUtils {
 
 	public static Bitmap getVideoFrame(String videoPath,long frameTime) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        
         try {
-            retriever.setDataSource(videoPath);                   
+            retriever.setDataSource(videoPath);      
             return retriever.getFrameAtTime(frameTime, MediaMetadataRetriever.OPTION_CLOSEST);
         } catch (IllegalArgumentException ex) {
             Log.w("FFMPEG.MediaUtils", "illegal argument exception");
