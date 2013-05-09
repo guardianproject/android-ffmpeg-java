@@ -1167,6 +1167,77 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 	}
 	
+	public MediaDesc getInfo (MediaDesc in) throws IOException, InterruptedException
+	{
+		ArrayList<String> cmd = new ArrayList<String>();
+		
+		cmd = new ArrayList<String>();
+			
+		cmd.add(ffmpegBin);
+		cmd.add("-y");
+		cmd.add("-i");
+
+		cmd.add(new File(in.path).getCanonicalPath());
+		
+		InfoParser ip = new InfoParser(in);
+		execFFMPEG(cmd,ip, null);
+
+		while (in.duration == null)
+		{
+			try{Thread.sleep(100);}
+			catch (Exception e){}
+			
+		}
+		
+		return in;
+		
+	}
+	
+	private class InfoParser implements ShellCallback {
+		
+		private MediaDesc mMedia;
+		private int retValue;
+		
+		public InfoParser (MediaDesc media)
+		{
+			mMedia = media;
+		}
+
+		@Override
+		public void shellOut(String shellLine) {
+			if (shellLine.contains("Duration:"))
+			{
+				
+				Log.d(TAG,"Parsing Length: " + shellLine);
+//		  Duration: 00:01:01.75, start: 0.000000, bitrate: 8184 kb/s
+
+				String[] timecode = shellLine.split(",")[0].split(":");
+
+				
+				double duration = 0;
+				
+				duration = Double.parseDouble(timecode[1].trim())*60*60; //hours
+				duration += Double.parseDouble(timecode[2].trim())*60; //minutes
+				duration += Double.parseDouble(timecode[3].trim()); //minutes
+				
+				mMedia.duration = String.format(Locale.US,"%.2f",duration);
+				
+			
+			}
+	
+	//
+    //Stream #0.0(und): Video: h264 (Baseline), yuv420p, 1280x720, 8052 kb/s, 29.97 fps, 90k tbr, 90k tbn, 180k tbc
+    //Stream #0.1(und): Audio: mp2, 22050 Hz, 2 channels, s16, 127 kb/s
+    
+		}
+
+		@Override
+		public void processComplete(int exitValue) {
+			retValue = exitValue;
+
+		}
+	}
+	
 	class StreamGobbler extends Thread
 	{
 	    InputStream is;

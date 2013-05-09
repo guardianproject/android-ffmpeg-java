@@ -42,29 +42,27 @@ public class CrossfadeCat {
 		double length = mController.getLength(mFirstFile);
 
 		double trimLength = length - mFadeLength;
-		String trimLengthStr = mController.formatTimePeriod(trimLength);
-		String fadeLengthStr = mController.formatTimePeriod(mFadeLength);
 
 		// Obtain trimLength seconds of fade out position from the first File
-		String trimmedOne = mController.trimAudio(mFirstFile, trimLengthStr, null);
+		String trimmedOne = mController.trimAudio(mFirstFile, trimLength, -1);
 		if( trimmedOne == null )
 			return abort();
 		mTemporaryFiles.add(trimmedOne);
 
 		// We assume a fade out is needed (i.e., firstFile doesn't already fade out)
 
-		String fadedOne = mController.fadeAudio(trimmedOne, "t", "0", fadeLengthStr, fadeLengthStr);
+		String fadedOne = mController.fadeAudio(trimmedOne, "t", 0, mFadeLength, mFadeLength);
 		if( fadedOne == null )
 			return abort();
 		mTemporaryFiles.add(fadedOne);
 
 		// Get crossfade section from the second file
-		String trimmedTwo = mController.trimAudio(mSecondFile, "0", fadeLengthStr);
+		String trimmedTwo = mController.trimAudio(mSecondFile, 0, mFadeLength);
 		if( trimmedTwo == null )
 			return abort();
 		mTemporaryFiles.add(trimmedTwo);
 
-		String fadedTwo = mController.fadeAudio(trimmedTwo, "t", fadeLengthStr, null, null);
+		String fadedTwo = mController.fadeAudio(trimmedTwo, "t", mFadeLength, -1, -1);
 		if( fadedTwo == null )
 			return abort();
 		mTemporaryFiles.add(fadedTwo);
@@ -81,11 +79,11 @@ public class CrossfadeCat {
 		mTemporaryFiles.add(crossfaded);
 
 		// Trim off crossfade sections from originals
-		String trimmedThree = mController.trimAudio(mFirstFile, "0", trimLengthStr);
+		String trimmedThree = mController.trimAudio(mFirstFile, 0, trimLength);
 		if( trimmedThree == null )
 			return abort();
 		mTemporaryFiles.add(trimmedThree);
-		String trimmedFour = mController.trimAudio(mSecondFile, fadeLengthStr, null);
+		String trimmedFour = mController.trimAudio(mSecondFile, mFadeLength, -1);
 		if( trimmedFour == null )
 			return abort();
 		mTemporaryFiles.add(trimmedFour);

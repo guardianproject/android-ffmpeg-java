@@ -105,7 +105,7 @@ public class SoxController {
 	 * @param length (optional)
 	 * @return path to trimmed audio
 	 */
-	public String trimAudio(String path, String start, String length) throws IOException {
+	public String trimAudio(String path, double start, double length) throws IOException {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		File file = new File(path);
@@ -118,9 +118,9 @@ public class SoxController {
 		cmd.add("16");
 		cmd.add(outFile);
 		cmd.add("trim");
-		cmd.add(start);
-		if( length != null )
-			cmd.add(length);
+		cmd.add(start+"");
+		if( length != -1 )
+			cmd.add(length+"");
 
 		try {
 			int rc = execSox(cmd, callback);
@@ -153,7 +153,7 @@ public class SoxController {
 	 * @param fadeOutLength (optional)
 	 * @return
 	 */
-	public String fadeAudio(String path, String type, String fadeInLength, String stopTime, String fadeOutLength ) throws IOException {
+	public String fadeAudio(String path, String type, double fadeInLength, double stopTime, double fadeOutLength ) throws IOException {
 
 		final List<String> curves = Arrays.asList( new String[]{ "q", "h", "t", "l", "p"} );
 
@@ -171,11 +171,11 @@ public class SoxController {
 		cmd.add(outFile);
 		cmd.add("fade");
 		cmd.add(type);
-		cmd.add(fadeInLength);
-		if(stopTime != null)
-			cmd.add(stopTime);
-		if(fadeOutLength != null)
-			cmd.add(fadeOutLength);
+		cmd.add(fadeInLength+"");
+		if(stopTime != -1)
+			cmd.add(stopTime+"");
+		if(fadeOutLength != -1)
+			cmd.add(fadeOutLength+"");
 
 		try {
 			int rc = execSox(cmd, callback);
@@ -265,19 +265,13 @@ public class SoxController {
 	 * 	hh:mm:ss:ss.frac
 	 * @param seconds
 	 */
+	/*
 	public String formatTimePeriod(double seconds) {
-		/*
-		DecimalFormat df = new DecimalFormat("#.##");
-		df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
-		 String seconds_frac = df.format(seconds);
-		 
-		 
-		return String.format(Locale.US, "0:0:%s", seconds_frac);
-		*/
+	
 		long milliTime = (long)(seconds * 100f);
 		Date dateTime = new Date(milliTime);
-		return String.format(Locale.US, "%s:%s:%s", dateTime.getHours(),dateTime.getMinutes(),dateTime.getSeconds());
-	}
+		return String.format(Locale.US, "%s:%s.%s", dateTime.getHours(),dateTime.getMinutes(),dateTime.getSeconds());
+	}*/
 
 	public int execSox(List<String> cmd, ShellCallback sc) throws IOException,
 			InterruptedException {
