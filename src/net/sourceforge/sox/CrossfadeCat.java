@@ -27,7 +27,7 @@ public class CrossfadeCat {
 	private String mSecondFile;
 	private double mFadeLength;
 	private String mFinalMix;
-	private ArrayList<String> mTemporaryFiles = new ArrayList<String>();;
+	private ArrayList<String> mTemporaryFiles = new ArrayList<String>();
 
 	public CrossfadeCat(SoxController controller, String firstFile, String secondFile, double fadeLength, String outFile) {
 		mController = controller;
@@ -96,21 +96,11 @@ public class CrossfadeCat {
 		files.add(crossfaded);
 		files.add(trimmedFour);
 		mFinalMix = mController.combine(files, mFinalMix);
-		cleanup();
 		return true;
 	}
 
-	private void cleanup() {
-		for(String file : mTemporaryFiles) {
-			File f = new File(file);
-			boolean result = f.delete();
-			if( !result )
-				Log.e(TAG, "Error, could not delete: " + file);
-		}
-	}
-
+	
 	private boolean abort() {
-		cleanup();
 		return false;
 	}
 
