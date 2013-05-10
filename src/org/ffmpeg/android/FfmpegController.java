@@ -642,8 +642,6 @@ out.avi – create this output file. Change it as you like, for example using an
 
 		cmd.add(ffmpegBin);
 		cmd.add("-y");
-		cmd.add("-i");
-		cmd.add(new File(mediaIn.path).getCanonicalPath());
 		
 		if (mediaIn.startTime != null)
 		{
@@ -656,6 +654,10 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add("-t");
 			cmd.add(mediaIn.duration);
 		}
+		
+		cmd.add("-i");
+		cmd.add(new File(mediaIn.path).getCanonicalPath());
+		
 		
 		cmd.add("-ar");
 		cmd.add(sampleRate + "");
