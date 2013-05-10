@@ -10,6 +10,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,10 +26,12 @@ public class SoxController {
 	private String soxBin;
 	private File fileBinDir;
 	private Context context;
+	private ShellCallback callback;
 
-	public SoxController(Context _context) throws FileNotFoundException, IOException {
+	public SoxController(Context _context, ShellCallback _callback) throws FileNotFoundException, IOException {
 		context = _context;
 		fileBinDir = context.getDir("bin",0);
+		callback = _callback;
 
 		if (!new File(fileBinDir, libraryAssets[0]).exists())
 		{
@@ -40,18 +43,7 @@ public class SoxController {
 
 	}
 
-	private class LoggingCallback implements ShellCallback {
-		@Override
-		public void shellOut(String shellLine) {
-			Log.i("sox", shellLine);
-		}
-
-		@Override
-		public void processComplete(int exitValue) {
-			Log.i("sox", "Got return value: " + exitValue);
-		}
-	}
-
+	
 	private class LengthParser implements ShellCallback {
 		public double length;
 		public int retValue = -1;
@@ -100,7 +92,6 @@ public class SoxController {
 		} catch (IOException e) {
 			Log.e("sox","error getting length ",e);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			Log.e("sox","error getting length",e);
 		}
 
@@ -114,7 +105,7 @@ public class SoxController {
 	 * @param length (optional)
 	 * @return path to trimmed audio
 	 */
-	public String trimAudio(String path, String start, String length) throws IOException {
+	public String trimAudio(String path, double start, double length) throws IOException {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		File file = new File(path);
@@ -127,12 +118,12 @@ public class SoxController {
 		cmd.add("16");
 		cmd.add(outFile);
 		cmd.add("trim");
-		cmd.add(start);
-		if( length != null )
-			cmd.add(length);
+		cmd.add(start+"");
+		if( length != -1 )
+			cmd.add(length+"");
 
 		try {
-			int rc = execSox(cmd, new LoggingCallback());
+			int rc = execSox(cmd, callback);
 			if( rc != 0 ) {
 				Log.e(TAG, "trimAudio receieved non-zero return code!");
 				outFile = null;
@@ -145,7 +136,11 @@ public class SoxController {
 			e.printStackTrace();
 		}
 
-		return outFile;
+		if (file.exists())
+			return outFile;
+		else
+			return null;
+		
 	}
 
 	/**
@@ -158,7 +153,7 @@ public class SoxController {
 	 * @param fadeOutLength (optional)
 	 * @return
 	 */
-	public String fadeAudio(String path, String type, String fadeInLength, String stopTime, String fadeOutLength ) throws IOException {
+	public String fadeAudio(String path, String type, double fadeInLength, double stopTime, double fadeOutLength ) throws IOException {
 
 		final List<String> curves = Arrays.asList( new String[]{ "q", "h", "t", "l", "p"} );
 
@@ -176,14 +171,14 @@ public class SoxController {
 		cmd.add(outFile);
 		cmd.add("fade");
 		cmd.add(type);
-		cmd.add(fadeInLength);
-		if(stopTime != null)
-			cmd.add(stopTime);
-		if(fadeOutLength != null)
-			cmd.add(fadeOutLength);
+		cmd.add(fadeInLength+"");
+		if(stopTime != -1)
+			cmd.add(stopTime+"");
+		if(fadeOutLength != -1)
+			cmd.add(fadeOutLength+"");
 
 		try {
-			int rc = execSox(cmd, new LoggingCallback());
+			int rc = execSox(cmd, callback);
 			if(rc != 0) {
 				Log.e(TAG, "fadeAudio receieved non-zero return code!");
 				outFile = null;
@@ -218,7 +213,7 @@ public class SoxController {
 		cmd.add(outFile);
 
 		try {
-			int rc = execSox(cmd, new LoggingCallback());
+			int rc = execSox(cmd, callback);
 			if(rc != 0) {
 				Log.e(TAG, "combineMix receieved non-zero return code!");
 				outFile = null;
@@ -250,7 +245,7 @@ public class SoxController {
 		cmd.add(outFile);
 
 		try {
-			int rc = execSox(cmd, new LoggingCallback());
+			int rc = execSox(cmd, callback);
 			if(rc != 0) {
 				Log.e(TAG, "combine receieved non-zero return code!");
 				outFile = null;
@@ -270,12 +265,13 @@ public class SoxController {
 	 * 	hh:mm:ss:ss.frac
 	 * @param seconds
 	 */
+	/*
 	public String formatTimePeriod(double seconds) {
-		DecimalFormat df = new DecimalFormat("#.##");
-		df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
-		 String seconds_frac = df.format(seconds);
-		return String.format(Locale.US, "0:0:%s", seconds_frac);
-	}
+	
+		long milliTime = (long)(seconds * 100f);
+		Date dateTime = new Date(milliTime);
+		return String.format(Locale.US, "%s:%s.%s", dateTime.getHours(),dateTime.getMinutes(),dateTime.getSeconds());
+	}*/
 
 	public int execSox(List<String> cmd, ShellCallback sc) throws IOException,
 			InterruptedException {
