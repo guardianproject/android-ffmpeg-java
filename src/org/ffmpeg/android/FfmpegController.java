@@ -495,6 +495,7 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(FFMPEGArg.ARG_BITRATE_AUDIO);
 			cmd.add(out.audioBitrate + "k");
 		}
+		cmd.add("-y");
 		
 		cmd.add("-cutoff");
 		cmd.add("15000");
@@ -714,7 +715,6 @@ out.avi – create this output file. Change it as you like, for example using an
 			cmd.add(mediaOut.audioBitrate + "k");
 		}
 		
-		cmd.add("-y");
 		cmd.add("-strict");
 		cmd.add("-2");
 
