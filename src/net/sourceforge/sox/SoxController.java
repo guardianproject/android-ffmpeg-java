@@ -284,6 +284,12 @@ public class SoxController {
 	private int execProcess(List<String> cmds, ShellCallback sc)
 			throws IOException, InterruptedException {
 
+		//ensure that the arguments are in the correct Locale format
+		for (String cmd :cmds)
+		{
+			cmd = String.format(Locale.US, "%s", cmd);
+		}
+		
 		ProcessBuilder pb = new ProcessBuilder(cmds);
 		pb.directory(fileBinDir);
 
