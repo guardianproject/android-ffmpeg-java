@@ -75,6 +75,12 @@ public class FfmpegController {
 	
 	private int execProcess(List<String> cmds, ShellCallback sc, File fileExec) throws IOException, InterruptedException {		
         
+		//ensure that the arguments are in the correct Locale format
+		for (String cmd :cmds)
+		{
+			cmd = String.format(Locale.US, "%s", cmd);
+		}
+		
 		ProcessBuilder pb = new ProcessBuilder(cmds);
 		pb.directory(fileExec);
 		
@@ -120,6 +126,9 @@ public class FfmpegController {
 
 	private int execProcess(String cmd, ShellCallback sc, File fileExec) throws IOException, InterruptedException {		
         
+		//ensure that the argument is in the correct Locale format
+		cmd = String.format(Locale.US, "%s", cmd);
+		
 		ProcessBuilder pb = new ProcessBuilder(cmd);
 		pb.directory(fileExec);
 
