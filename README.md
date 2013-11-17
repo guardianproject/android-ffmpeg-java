@@ -5,6 +5,9 @@ Android applications.  It depends on the
 [android-ffmpeg](https://github.com/guardianproject/android-ffmpeg) project to
 provide the ffmpeg binary.
 
+For ease of developer use, we've included the FFMPEG and Sox binaries in the project,
+however, we strongly recommend you compile them yourselves using the steps below.
+
 It is licensed under the GPLv3.
 
 ## Building
