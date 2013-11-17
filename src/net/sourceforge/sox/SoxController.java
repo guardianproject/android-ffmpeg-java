@@ -14,7 +14,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import org.ffmpeg.android.BinaryInstaller;
 import org.ffmpeg.android.ShellUtils.ShellCallback;
 
 import android.content.Context;
@@ -30,16 +29,11 @@ public class SoxController {
 
 	public SoxController(Context _context, ShellCallback _callback) throws FileNotFoundException, IOException {
 		context = _context;
-		fileBinDir = context.getDir("bin",0);
 		callback = _callback;
 
-		if (!new File(fileBinDir, libraryAssets[0]).exists())
-		{
-			BinaryInstaller bi = new BinaryInstaller(context,fileBinDir);
-			bi.installFromRaw();
-		}
+		fileBinDir = new File(_context.getFilesDir().getParentFile(),"lib");
 
-		soxBin = new File(fileBinDir,"sox").getCanonicalPath();
+		soxBin = new File(fileBinDir,"libsox.so").getCanonicalPath();
 
 	}
 
