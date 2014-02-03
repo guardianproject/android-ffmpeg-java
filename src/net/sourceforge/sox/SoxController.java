@@ -6,35 +6,31 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 import org.ffmpeg.android.ShellUtils.ShellCallback;
-
-import android.content.Context;
-import android.util.Log;
 
 public class SoxController {
 	private final static String TAG = "SOX";
 	String[] libraryAssets = {"sox"};
 	private String soxBin;
 	private File fileBinDir;
-	private Context context;
 	private ShellCallback callback;
 
-	public SoxController(Context _context, ShellCallback _callback) throws FileNotFoundException, IOException {
-		context = _context;
+	public SoxController(File fileAppRoot, ShellCallback _callback) throws FileNotFoundException, IOException {
 		callback = _callback;
 
-		fileBinDir = new File(_context.getFilesDir().getParentFile(),"lib");
-
-		soxBin = new File(fileBinDir,"libsox.so").getCanonicalPath();
-
+		fileBinDir = new File(fileAppRoot,"lib");
+		File fileSox = new File(fileBinDir,"libsox.so");
+		
+		if (fileSox.exists())
+			soxBin = fileSox.getCanonicalPath();
+		else
+			soxBin = "sox";
+		
 	}
 
 	
@@ -44,7 +40,6 @@ public class SoxController {
 
 		@Override
 		public void shellOut(String shellLine) {
-			Log.d("sox", shellLine);
 			if( !shellLine.startsWith("Length") )
 				return;
 			String[] split = shellLine.split(":");
@@ -83,12 +78,10 @@ public class SoxController {
 
 		try {
 			execSox(cmd, sc);
-		} catch (IOException e) {
-			Log.e("sox","error getting length ",e);
-		} catch (InterruptedException e) {
-			Log.e("sox","error getting length",e);
-		}
-
+		} catch (Exception e) {
+			return -1;
+		} 
+		
 		return sc.length;
 	}
 
@@ -99,7 +92,7 @@ public class SoxController {
 	 * @param length (optional)
 	 * @return path to trimmed audio
 	 */
-	public String trimAudio(String path, double start, double length) throws IOException {
+	public String trimAudio(String path, double start, double length) throws Exception {
 		ArrayList<String> cmd = new ArrayList<String>();
 
 		File file = new File(path);
@@ -116,18 +109,9 @@ public class SoxController {
 		if( length != -1 )
 			cmd.add(length+"");
 
-		try {
-			int rc = execSox(cmd, callback);
-			if( rc != 0 ) {
-				Log.e(TAG, "trimAudio receieved non-zero return code!");
-				outFile = null;
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		int rc = execSox(cmd, callback);
+		if( rc != 0 ) {
+			outFile = null;
 		}
 
 		if (file.exists())
@@ -152,8 +136,8 @@ public class SoxController {
 		final List<String> curves = Arrays.asList( new String[]{ "q", "h", "t", "l", "p"} );
 
 		if(!curves.contains(type)) {
-			Log.e(TAG, "fadeAudio: passed invalid type: " + type);
-			return null;
+			throw new RuntimeException("fadeAudio: passed invalid type: " + type);
+			
 		}
 
 		File file = new File(path);
@@ -174,7 +158,8 @@ public class SoxController {
 		try {
 			int rc = execSox(cmd, callback);
 			if(rc != 0) {
-				Log.e(TAG, "fadeAudio receieved non-zero return code!");
+				//Log.e(TAG, "fadeAudio receieved non-zero return code!");
+				
 				outFile = null;
 			}
 		} catch (IOException e) {
@@ -209,7 +194,7 @@ public class SoxController {
 		try {
 			int rc = execSox(cmd, callback);
 			if(rc != 0) {
-				Log.e(TAG, "combineMix receieved non-zero return code!");
+			//	Log.e(TAG, "combineMix receieved non-zero return code!");
 				outFile = null;
 			}
 		} catch (IOException e) {
@@ -229,7 +214,7 @@ public class SoxController {
 	 * @param outFile
 	 * @return outFile or null on failure
 	 */
-	public String combine(List<String> files, String outFile) {
+	public String combine(List<String> files, String outFile) throws Exception {
 		ArrayList<String> cmd = new ArrayList<String>();
 		cmd.add(soxBin);
 
@@ -238,19 +223,12 @@ public class SoxController {
 		}
 		cmd.add(outFile);
 
-		try {
 			int rc = execSox(cmd, callback);
 			if(rc != 0) {
-				Log.e(TAG, "combine receieved non-zero return code!");
-				outFile = null;
+				throw new Exception ("exit code: " + rc);
+				
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			
 		return outFile;
 	}
 
@@ -271,6 +249,7 @@ public class SoxController {
 			InterruptedException {
 
 		String soxBin = new File(fileBinDir, "sox").getCanonicalPath();
+		
 		Runtime.getRuntime().exec("chmod 700 " + soxBin);
 		return execProcess(cmd, sc);
 	}
@@ -294,8 +273,8 @@ public class SoxController {
 			cmdlog.append(' ');
 		}
 
-		Log.v(TAG, cmdlog.toString());
-
+		sc.shellOut(cmdlog.toString());
+		
 		// pb.redirectErrorStream(true);
 		Process process = pb.start();
 
@@ -341,7 +320,7 @@ public class SoxController {
 						sc.shellOut(line);
 
 			} catch (IOException ioe) {
-				Log.e(TAG, "error reading shell slog", ioe);
+				ioe.printStackTrace();
 			}
 		}
 	}

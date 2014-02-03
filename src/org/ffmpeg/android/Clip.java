@@ -1,6 +1,6 @@
 package org.ffmpeg.android;
 
-public class MediaDesc implements Cloneable
+public class Clip implements Cloneable
 {
 
 	public int width = -1;
@@ -23,7 +23,7 @@ public class MediaDesc implements Cloneable
 	public String mimeType;
 	
 	public String startTime; //00:00:00 or seconds format
-	public String duration; //00:00:00 or seconds format
+	public double duration = -1; //00:00:00 or seconds format
 	
 	public String videoFilter;
 	public String audioFilter;
@@ -32,20 +32,39 @@ public class MediaDesc implements Cloneable
 	public String aspect;
 	public int passCount = 1; //default
 		
-	public MediaDesc clone ()  throws CloneNotSupportedException
+	public Clip ()
 	{
-		return (MediaDesc)super.clone();
+		
+	}
+	
+	public Clip (String path)
+	{
+		this.path = path;
+	}
+	
+	public Clip clone ()  throws CloneNotSupportedException
+	{
+		return (Clip)super.clone();
 	}
 
 	public boolean isImage() {
-		return mimeType.startsWith("image");
+		if (mimeType != null)
+			return mimeType.startsWith("image");
+		else
+			return false;
 	}
 
 	public boolean isVideo() {
-		return mimeType.startsWith("video");
+		if (mimeType != null)
+			return mimeType.startsWith("video");
+		else
+			return false;
 	}
 
 	public boolean isAudio() {
-		return mimeType.startsWith("audio");
+		if (mimeType != null)
+			return mimeType.startsWith("audio");
+		else
+			return false;
 	}
 }

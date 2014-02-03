@@ -18,16 +18,14 @@ public class DrawBoxVideoFilter extends OverlayVideoFilter {
 	public int width;
 	public int height;
 	public String color;
-	private Context context;
 	
-	public DrawBoxVideoFilter (int x, int y, int width, int height, int alpha, String color, Context context)
+	public DrawBoxVideoFilter (int x, int y, int width, int height, int alpha, String color, File tmpDir) throws Exception
 	{
 		this.x = x;
 		this.y = y;
 		this.width = width;
 		this.height = height;
 		this.color = color;
-		this.context = context;
 		
 		if( alpha < 0 || alpha > 255 ) {
 			throw new IllegalArgumentException("Alpha must be an integer betweeen 0 and 255");
@@ -43,19 +41,13 @@ public class DrawBoxVideoFilter extends OverlayVideoFilter {
 		Canvas canvas = new Canvas(temp_box);
 		canvas.drawBitmap(bitmap, 0, 0, paint);
 		
-		try {
-			File outputFile;
-			outputFile = File.createTempFile("box_"+width+height+color, ".png", new File("/sdcard")/*context.getCacheDir()*/);
-			FileOutputStream os = new FileOutputStream(outputFile);
-			temp_box.compress(Bitmap.CompressFormat.PNG, 100, os);
-			overlayFile = outputFile;
-			xParam = Integer.toString(x);
-			yParam = Integer.toString(y);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+		File outputFile;
+		outputFile = File.createTempFile("box_"+width+height+color, ".png", tmpDir);
+		FileOutputStream os = new FileOutputStream(outputFile);
+		temp_box.compress(Bitmap.CompressFormat.PNG, 100, os);
+		overlayFile = outputFile;
+		xParam = Integer.toString(x);
+		yParam = Integer.toString(y);
 		
 	}
 }

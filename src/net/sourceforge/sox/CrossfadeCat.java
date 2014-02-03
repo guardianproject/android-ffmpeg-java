@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import android.util.Log;
-
 /**
  * Concatenates two files together with a crossfade of user
- * defined length.
+ * defined mClipLength.
  *
  * It is a Java port of the scripts/crossfade_cat.sh script
  * in the sox source tree.
@@ -34,32 +32,37 @@ public class CrossfadeCat {
 		mSecondFile = secondFile;
 		mFadeLength = fadeLength;
 		mFinalMix = outFile;
+		
+		//double mClipLength = mController.getLength(mFirstFile);
 	}
 
-	public boolean start() throws IOException {
-		// find length of first file
-		double length = mController.getLength(mFirstFile);
-
-		double trimLength = length - mFadeLength;
+	public boolean start() throws Exception {
+		// find mClipLength of first file
+		
 
 		// Obtain trimLength seconds of fade out position from the first File
-		String trimmedOne = mController.trimAudio(mFirstFile, trimLength, mFadeLength);
-		if( trimmedOne == null )
-			return abort();
+		double firstFileLength = mController.getLength(mFirstFile);
+		double trimLength = firstFileLength - mFadeLength;
 
-		// We assume a fade out is needed (i.e., firstFile doesn't already fade out)
+		String trimmedOne = mController.trimAudio(mFirstFile, trimLength, mFadeLength);
+		
+		if( trimmedOne == null )
+			throw new IOException("audio trim did not complete: " + mFirstFile);
+		
+			// We assume a fade out is needed (i.e., firstFile doesn't already fade out)
 
 		String fadedOne = mController.fadeAudio(trimmedOne, "t", 0, mFadeLength, mFadeLength);
 		if( fadedOne == null )
-			return abort();
+			throw new IOException("audio fade did not complete: " + trimmedOne);
+		
 		// Get crossfade section from the second file
 		String trimmedTwo = mController.trimAudio(mSecondFile, 0, mFadeLength);
 		if( trimmedTwo == null )
-			return abort();
+			throw new IOException("audio trim did not complete: " + mSecondFile);
 
 		String fadedTwo = mController.fadeAudio(trimmedTwo, "t", mFadeLength, -1, -1);
 		if( fadedTwo == null )
-			return abort();
+			throw new IOException("audio fade did not complete: " + trimmedTwo);
 
 		// Mix crossfaded files together at full volume
 		ArrayList<String> files = new ArrayList<String>();
@@ -69,29 +72,28 @@ public class CrossfadeCat {
 		String crossfaded = new File(mFirstFile).getCanonicalPath() + "-x-" + new File(mSecondFile).getName() +".wav";
 		crossfaded = mController.combineMix(files, crossfaded);
 		if( crossfaded == null )
-			return abort();
+			throw new IOException("crossfade did not complete");
 
 		// Trim off crossfade sections from originals
 		String trimmedThree = mController.trimAudio(mFirstFile, 0, trimLength);
 		if( trimmedThree == null )
-			return abort();
+			throw new IOException("crossfade trim beginning did not complete");
 		
 		String trimmedFour = mController.trimAudio(mSecondFile, mFadeLength, -1);
 		if( trimmedFour == null )
-			return abort();
-
+			throw new IOException("crossfade trim end did not complete");
+		
 		// Combine into final mix
 		files.clear();
 		files.add(trimmedThree);
 		files.add(crossfaded);
 		files.add(trimmedFour);
 		mFinalMix = mController.combine(files, mFinalMix);
+		
+		if (mFinalMix == null)
+			throw new IOException("final mix did not complete");
+		
 		return true;
-	}
-
-	
-	private boolean abort() {
-		return false;
 	}
 
 

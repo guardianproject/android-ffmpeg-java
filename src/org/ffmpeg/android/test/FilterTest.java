@@ -1,6 +1,7 @@
 package org.ffmpeg.android.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.ffmpeg.android.filters.CropVideoFilter;
@@ -16,24 +17,27 @@ import android.content.Context;
 public class FilterTest  {
 
 
-	public void test (Context context)
+	public static void test (String title, String textColor, File fileFont, String boxColor, String opacity) throws Exception
 	{
     	ArrayList<VideoFilter> listFilters = new ArrayList<VideoFilter>();
 
+    	File fileDir = new File("tmp");
+    	fileDir.mkdir();
+    	
     	int height = 480;
     	int width = 720;
     	int lowerThird = height / 3;    	
-    	DrawBoxVideoFilter vf = new DrawBoxVideoFilter(0,height-lowerThird,width,lowerThird,100,"blue",context);
+    	DrawBoxVideoFilter vf = new DrawBoxVideoFilter(0,height-lowerThird,width,lowerThird,100,"blue",fileDir);
     	
     	DrawTextVideoFilter vfTitle = 
-    			new DrawTextVideoFilter("Rikshaw Rock and Roll",
+    			new DrawTextVideoFilter(title,
     					DrawTextVideoFilter.X_CENTERED,DrawTextVideoFilter.Y_CENTERED,
-    					"green",
+    					textColor,
     					38,
-    					new File("/system/fonts/DroidSerif-Regular.ttf"),
+    					fileFont,
     					true,
-    					"yellow",
-    					"0.5");
+    					boxColor,
+    					opacity);
     	
     	float fps = 29.97f;
     	int fadeTime = (int)(fps*3);
@@ -56,5 +60,8 @@ public class FilterTest  {
     	listFilters.add(vfFadeIn);
     	listFilters.add(vfFadeOut);
     
+    	
+    	
+    	fileDir.deleteOnExit();
 	}
 }
