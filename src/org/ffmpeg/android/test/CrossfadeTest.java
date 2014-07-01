@@ -25,7 +25,7 @@ public class CrossfadeTest {
 		 int sampleRate = 22050;
 		 int channels = 1;
 		 
-		 FfmpegController ffmpegc = new FfmpegController (fileTmp, fileAppRoot);
+		 FfmpegController ffmpegc = new FfmpegController (null, fileTmp);
 		     
 		 Clip clipOut = new Clip();
 		 clipOut.path = clipOutPath;
@@ -55,7 +55,7 @@ public class CrossfadeTest {
 			}
 		 
 		 //now add 1 second cross fade to each audio file and cat them together
-		 SoxController sxCon = new SoxController(fileAppRoot, new ShellUtils.ShellCallback() {
+		 SoxController sxCon = new SoxController(null, fileAppRoot, new ShellUtils.ShellCallback() {
 			
 			@Override
 			public void shellOut(String shellLine) {

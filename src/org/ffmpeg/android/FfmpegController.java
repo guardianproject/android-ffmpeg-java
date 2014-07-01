@@ -15,65 +15,101 @@ import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
-
 import org.ffmpeg.android.ShellUtils.ShellCallback;
 
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.util.Log;
 
 public class FfmpegController {
 
-	private File mFileBinDir;
+	
 	private String mFfmpegBin;
 	
 	private final static String TAG = "FFMPEG";
 	
 	private File mFileTemp;
 	
-	private String mCmdCat;
+	private String mCmdCat = "sh cat";
 	
-	public FfmpegController(File fileTemp, File fileAppRoot) throws FileNotFoundException, IOException {		
+	public FfmpegController(Context context, File fileTemp) throws FileNotFoundException, IOException {		
 		mFileTemp = fileTemp;
 		
-		//mContext.getFilesDir().getParentFile()
-		checkBinary (fileAppRoot);
-		
+		installBinaries(context, false);
 	}
 	
-	private void checkBinary (File fileAppRoot) throws FileNotFoundException, IOException
+	public void installBinaries(Context context, boolean overwrite)
 	{
-		mFileBinDir = new File(fileAppRoot,"lib");
-
-		if (mFileBinDir.exists())
-		{
-			File fileBin = new File(mFileBinDir,"libffmpeg.so");
-
-			if (fileBin.exists())
-				mFfmpegBin = fileBin.getCanonicalPath();
-			else
-				mFfmpegBin = "ffmpeg";
-
-		}
-		else
-		{
-			mFfmpegBin = "ffmpeg";
-		}
-		
-		mCmdCat = "sh cat";
-
+		mFfmpegBin = installBinary(context, R.raw.ffmpeg, "ffmpeg", overwrite);
 	}
+	
+	public String getBinaryPath ()
+	{
+		return mFfmpegBin;
+	}
+	
+	private static String installBinary(Context ctx, int resId, String filename, boolean upgrade) {
+		try {
+			File f = new File(ctx.getDir("bin", 0), filename);
+			if (f.exists()) {
+				f.delete();
+			}
+			copyRawFile(ctx, resId, f, "0755");
+			return f.getCanonicalPath();
+		} catch (Exception e) {
+			Log.e(TAG, "installBinary failed: " + e.getLocalizedMessage());
+			return null;
+		}
+	}
+	
+	/**
+	 * Copies a raw resource file, given its ID to the given location
+	 * @param ctx context
+	 * @param resid resource id
+	 * @param file destination file
+	 * @param mode file permissions (E.g.: "755")
+	 * @throws IOException on error
+	 * @throws InterruptedException when interrupted
+	 */
+	private static void copyRawFile(Context ctx, int resid, File file, String mode) throws IOException, InterruptedException
+	{
+		final String abspath = file.getAbsolutePath();
+		// Write the iptables binary
+		final FileOutputStream out = new FileOutputStream(file);
+		final InputStream is = ctx.getResources().openRawResource(resid);
+		byte buf[] = new byte[1024];
+		int len;
+		while ((len = is.read(buf)) > 0) {
+			out.write(buf, 0, len);
+		}
+		out.close();
+		is.close();
+		// Change the permissions
+		Runtime.getRuntime().exec("chmod "+mode+" "+abspath).waitFor();
+	}
+
+	
 	
 	private void execFFMPEG (List<String> cmd, ShellCallback sc, File fileExec) throws IOException, InterruptedException {
 	
-		String runtimeCmd = new File(mFileBinDir,"ffmpeg").getCanonicalPath();
+		enablePermissions();
 		
-		Runtime.getRuntime().exec("chmod 777 " +runtimeCmd);
-    	
 		execProcess (cmd, sc, fileExec);
 	}
 	
+	private void enablePermissions () throws IOException
+	{
+		Runtime.getRuntime().exec("chmod 700 " + mFfmpegBin);
+    	
+	}
+	
 	private void execFFMPEG (List<String> cmd, ShellCallback sc) throws IOException, InterruptedException {
-		execFFMPEG (cmd, sc, mFileBinDir);
+		execFFMPEG (cmd, sc, new File(mFfmpegBin).getParentFile());
 	}
 	
 	private int execProcess(List<String> cmds, ShellCallback sc, File fileExec) throws IOException, InterruptedException {		

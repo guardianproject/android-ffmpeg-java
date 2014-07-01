@@ -19,8 +19,8 @@ public class ConcatTest {
 		File fileAppRoot = new File("");
 		File fileVideoRoot = new File(videoRoot);
 		
-		FfmpegController fc = new FfmpegController(fileTmp, fileAppRoot);
-		 SoxController sxCon = new SoxController(fileAppRoot, null);
+		FfmpegController fc = new FfmpegController(null, fileTmp);
+		 SoxController sxCon = new SoxController(null, fileAppRoot, null);
 		
 		ArrayList<Clip> listVideos = new ArrayList<Clip>();
 		

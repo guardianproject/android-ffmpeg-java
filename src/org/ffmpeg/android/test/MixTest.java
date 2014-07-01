@@ -13,7 +13,7 @@ public class MixTest {
 		File fileTmp = new File(fileTmpPath);
 		File fileAppRoot = new File("");
 		
-		FfmpegController fc = new FfmpegController(fileTmp, fileAppRoot);
+		FfmpegController fc = new FfmpegController(null, fileTmp);
 		
 		Clip clipVideo = new Clip(videoClipPath);
 		//fc.getInfo(clipVideo);
