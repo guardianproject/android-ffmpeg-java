@@ -1073,6 +1073,9 @@ out.avi – create this output file. Change it as you like, for example using an
 		
 		cmd.add(mFfmpegBin);
 		cmd.add("-y");
+		
+		cmd.add("-i");
+		cmd.add(mediaPath);
 				
 		if (mediaIn.startTime != null)
 		{
@@ -1087,8 +1090,6 @@ out.avi – create this output file. Change it as you like, for example using an
 
 		}
 
-		cmd.add("-i");
-		cmd.add(mediaPath);
 
 		if (!withSound)
 			cmd.add("-an");
