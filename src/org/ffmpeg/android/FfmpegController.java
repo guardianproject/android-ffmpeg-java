@@ -315,6 +315,12 @@ public class FfmpegController {
 			cmd.add("-f");
 			cmd.add(out.format);
 		}
+
+		if (out.duration > 0)
+		{
+			cmd.add(Argument.DURATION);
+			cmd.add(out.duration);
+		}
 		
 		if (enableExperimental)
 		{
