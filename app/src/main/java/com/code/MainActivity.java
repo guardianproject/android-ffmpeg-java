@@ -46,6 +46,18 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main_activity);
         ButterKnife.inject(this);
         new File(tempPath).mkdirs();
+        File[] files = new File("/system/fonts/").listFiles();
+        for (File file : files) {
+            String fileName = file.getName().toLowerCase();
+            if (fileName.contains("miui")) {
+                if (fileName.toLowerCase().equals("miui-regular")) {
+                    Config.SYSTEM_DEFAULT_FONT_PATH = file.getAbsolutePath();
+                    break;
+                }
+                Config.SYSTEM_DEFAULT_FONT_PATH = file.getAbsolutePath();
+                break;
+            }
+        }
         textMix.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

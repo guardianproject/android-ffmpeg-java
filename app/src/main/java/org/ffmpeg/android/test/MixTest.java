@@ -1,6 +1,11 @@
 package org.ffmpeg.android.test;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.text.TextPaint;
 import android.util.Log;
 
 import com.coremedia.iso.boxes.Container;
@@ -299,9 +304,11 @@ public class MixTest {
         File fileTmp = new File(fileTmpPath);
         float timeSecond = timeLength / 1000f;
         final FfmpegController fc = new FfmpegController(context, fileTmp);
-        final String clipLogo = "/storage/emulated/0/.mofunshow/movies/90331/logo2.png";
+        final String clipLogoOrg = "/storage/emulated/0/.mofunshow/movies/90331/logo2.png";
         final String tempMp4 = fileTmpPath + "/" + "temp_filter.mp4";
-        Clip logo = new Clip(clipLogo);
+
+        Clip logo = new Clip(createLogoWall(clipLogoOrg, "主演:香肠嘴猪八戒™の개암"));
+
 
         fc.makeLastFrameFilter2(lastFrame, timeSecond - 0.7f, new Clip(mp4FilePath), logo, 5, tempMp4, new ShellUtils.ShellCallback() {
             @Override
@@ -321,5 +328,38 @@ public class MixTest {
         });
 
 
+    }
+
+    private static String createLogoWall(String clipLogoOrg, String text) {
+        String outPath = "/storage/emulated/0/.mofunshow/movies/90331/logo_user.png";
+        new File(outPath).delete();
+        Bitmap bitmap = getDrawBitMap(BitmapFactory.decodeFile(clipLogoOrg), text);
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(outPath);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 80, fos);
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return outPath;
+    }
+
+    public static Bitmap getDrawBitMap(Bitmap bmp, String text) {
+        int width = bmp.getWidth();
+        int height = bmp.getHeight();
+        int newWidth = 800;
+        Bitmap newBitmap = Bitmap.createBitmap(newWidth, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(newBitmap);
+        canvas.drawBitmap(bmp, (newWidth - width) / 2, 0, null);
+        TextPaint textPaint = new TextPaint();
+        textPaint.setAntiAlias(true);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(21.0F);
+//        StaticLayout sl = new StaticLayout(text, textPaint, newBitmap.getWidth() - 8, Layout.Alignment.ALIGN_CENTER, 1.0f, 0.0f, false);
+//        canvas.translate(width / 2 + 30, height / 2 + 15);
+//        sl.draw(canvas);
+        canvas.drawText(text, newWidth / 2 - 30, height / 2 + 30, textPaint);
+        return newBitmap;
     }
 }

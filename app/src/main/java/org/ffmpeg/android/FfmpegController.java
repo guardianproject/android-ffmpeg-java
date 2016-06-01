@@ -208,6 +208,8 @@ public class FfmpegController {
         public static final String STARTTIME = "-ss";
         public static final String DURATION = "-t";
 
+        public static final String THREAD = "-threads";
+
 
     }
 
@@ -852,17 +854,11 @@ out.avi – create this output file. Change it as you like, for example using an
     public Clip makeLastFrameFilter2(String lastFrame, float startTime, Clip mediaIn, Clip mediaLogo, int duration, String outPath, ShellCallback sc) throws Exception {
         Clip result = new Clip();
         ArrayList<String> cmd = new ArrayList<String>();
-
-        // ffmpeg -loop 1 -i IMG_1338.jpg -t 10 -r 29.97 -s 640x480 -qscale 5 test.mp4
-
-        cmd = new ArrayList<String>();
-
-        //convert images to MP4
         cmd.add(mFfmpegBin);
         cmd.add("-y");
 //
-//        cmd.add("-loop");
-//        cmd.add("1");
+//        cmd.add(Argument.THREAD);
+//        cmd.add("4");
 
         cmd.add(Argument.STARTTIME);
         cmd.add(String.valueOf(startTime));
@@ -885,28 +881,6 @@ out.avi – create this output file. Change it as you like, for example using an
         cmd.add("-preset");
         cmd.add("medium");
 
-
-//        cmd.add(Argument.AUDIOCODEC);
-//        if (mediaIn.audioCodec != null)
-//            cmd.add(mediaIn.audioCodec);
-//        else {
-//            cmd.add("copy");
-//
-//        }
-//
-//        cmd.add(Argument.VIDEOCODEC);
-//        if (mediaIn.videoCodec != null)
-//            cmd.add(mediaIn.videoCodec);
-//        else {
-//            cmd.add("copy");
-//        }
-//
-//        cmd.add("-t");
-//        cmd.add(duration + "");
-
-//        cmd.add("-qscale");
-//        cmd.add("5"); //a good value 1 is best 30 is worst
-
         cmd.add("-c:v");
         cmd.add("libx264");
 
@@ -917,20 +891,12 @@ out.avi – create this output file. Change it as you like, for example using an
         cmd.add("0:0");
 
         cmd.add("-filter_complex");
-//        String filter = "geq=lum='if(lte(T,0.6), 255*T*(1/0.6),255)',format=gray[grad];"
-////                + "[3:v]select='eq(n,LAST_FRAME_INDEX)',setpts=PTS-STARTPTS[lastframe];"
-//                + "[0:v][2:v]overlay=0:0 [a];"
-//                + "[a]boxblur=8[blur];"
-//                + "[blur][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2 [lay];"
-//                + "[lay]drawtext=fontfile=/system/fonts/DroidSans.ttf:text=猪八戒香肠嘴™配音作品:fontsize=23:fontcolor=white@1.0:x=main_w/2:y=main_h/2[text];"
-//                + "[text][grad]alphamerge[alpha];"
-//                + "[a][alpha]overlay";
-        String filter = "geq=lum='if(lte(T,0.6), 255*T*(1/0.6),255)',format=gray[grad];"
+        String filter = "geq=lum='if(lte(T,0.5), 255*T*(1/0.5),255)',format=gray[grad];"
                 + "[0:v][2:v]overlay=0:0 [lay1];"
                 + "[lay1]boxblur=8[blur];"
                 + "[blur][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2 [lay];"
-                + "[lay]drawtext=fontfile=/system/fonts/DroidSans.ttf:text=猪八戒香肠嘴™配音作品:fontsize=23:fontcolor=white@1.0:x=main_w/2:y=main_h/2[text];"
-                + "[text][grad]alphamerge[alpha];"
+//                + "[lay]drawtext=fontfile="+ Config.SYSTEM_DEFAULT_FONT_PATH+":text=主演:猪八戒香肠嘴™:fontsize=23:fontcolor=white@1.0:x=main_w/2-20:y=main_h/2+20[text];"
+                + "[lay][grad]alphamerge[alpha];"
                 + "[0:v][2:v]overlay=0:0[lay1];"
                 + "[lay1][alpha]overlay";
 
@@ -939,8 +905,6 @@ out.avi – create this output file. Change it as you like, for example using an
         if (mediaIn.width != -1) {
             cmd.add(Argument.SIZE);
             cmd.add(mediaIn.width + "x" + mediaIn.height);
-            //	cmd.add("-vf");
-            //	cmd.add("\"scale=-1:" + mediaIn.width + "\"");
         }
 
         if (mediaIn.videoBitrate != -1) {
