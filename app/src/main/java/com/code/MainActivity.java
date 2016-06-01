@@ -81,25 +81,7 @@ public class MainActivity extends Activity {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-//                ImageConvertVideo imageConvertVideo = null;
-//                Bitmap bitmap = getBitmapsFromVideo(mp4FilePath);
-//                try {
-//                    imageConvertVideo = new ImageConvertVideo(new File(mp4OutPath), 3);
-//                    imageConvertVideo.encodeImage(bitmap, 1, 1);
-//                    imageConvertVideo.encodeImage(bitmap, 2, 1);
-//                    imageConvertVideo.encodeImage(bitmap, 3, 1);
-//                    imageConvertVideo.encodeImage(bitmap, 4, 1);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    if (imageConvertVideo != null) {
-//                        try {
-//                            imageConvertVideo.finish();
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
+
             }
         });
         testMerge.setOnClickListener(new View.OnClickListener() {
