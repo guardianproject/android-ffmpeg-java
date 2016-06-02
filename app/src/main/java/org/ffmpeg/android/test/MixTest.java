@@ -307,10 +307,14 @@ public class MixTest {
         final String clipLogoOrg = "/storage/emulated/0/.mofunshow/movies/90331/logo2.png";
         final String tempMp4 = fileTmpPath + "/" + "temp_filter.mp4";
 
-        Clip logo = new Clip(createLogoWall(clipLogoOrg, "主演:香肠嘴猪八戒™の개암"));
+        Bitmap bitmap = BitmapFactory.decodeFile(lastFrame);
+        Clip logo = new Clip(createLogoWall(clipLogoOrg, "主演:香肠嘴猪八戒™の개암Athens❄️冰.", bitmap.getWidth()));
 
-
-        fc.makeLastFrameFilter2(lastFrame, timeSecond - 0.7f, new Clip(mp4FilePath), logo, 5, tempMp4, new ShellUtils.ShellCallback() {
+        Clip mp4ClipOrg = new Clip(mp4FilePath);
+        mp4ClipOrg.width = bitmap.getWidth();
+        mp4ClipOrg.height = bitmap.getHeight();
+        mp4ClipOrg.frameRate = 24;
+        fc.makeLastFrameFilter2(lastFrame, timeSecond - 2f, mp4ClipOrg, logo, 0.7f, tempMp4, new ShellUtils.ShellCallback() {
             @Override
             public void shellOut(String shellLine) {
                 System.out.println("makeLastFrameFilter> " + shellLine);
@@ -330,10 +334,10 @@ public class MixTest {
 
     }
 
-    private static String createLogoWall(String clipLogoOrg, String text) {
+    private static String createLogoWall(String clipLogoOrg, String text, int fixWidth) {
         String outPath = "/storage/emulated/0/.mofunshow/movies/90331/logo_user.png";
         new File(outPath).delete();
-        Bitmap bitmap = getDrawBitMap(BitmapFactory.decodeFile(clipLogoOrg), text);
+        Bitmap bitmap = getDrawBitMap(BitmapFactory.decodeFile(clipLogoOrg), text, fixWidth);
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(outPath);
@@ -345,10 +349,10 @@ public class MixTest {
         return outPath;
     }
 
-    public static Bitmap getDrawBitMap(Bitmap bmp, String text) {
+    public static Bitmap getDrawBitMap(Bitmap bmp, String text, int fixWidth) {
         int width = bmp.getWidth();
         int height = bmp.getHeight();
-        int newWidth = 800;
+        int newWidth = fixWidth;
         Bitmap newBitmap = Bitmap.createBitmap(newWidth, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(newBitmap);
         canvas.drawBitmap(bmp, (newWidth - width) / 2, 0, null);

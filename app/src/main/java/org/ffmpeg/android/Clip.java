@@ -10,6 +10,8 @@ public class Clip implements Cloneable {
     public int videoBitrate = -1;
     public String videoBitStreamFilter;
 
+    public float frameRate = 25;
+
     public String audioCodec;
     public int audioChannels = -1;
     public int audioBitrate = -1;

@@ -190,6 +190,8 @@ public class FfmpegController {
         public static final String VIDEOCODEC = "-vcodec";
         public static final String AUDIOCODEC = "-acodec";
 
+        public static final String CODEC_VIDEO = "-c:v";
+
         public static final String VIDEOBITSTREAMFILTER = "-vbsf";
         public static final String AUDIOBITSTREAMFILTER = "-absf";
 
@@ -209,6 +211,15 @@ public class FfmpegController {
         public static final String DURATION = "-t";
 
         public static final String THREAD = "-threads";
+
+        public static final String PROFILE = "-profile:v";
+
+        public static final String PRESET = "-preset";
+        public static final String PIX_FORMAT = "-pix_fmt";
+        public static final String MAP = "-map";
+        public static final String FILTER_COMPLEX = "-filter_complex";
+
+
 
 
     }
@@ -851,7 +862,7 @@ out.avi – create this output file. Change it as you like, for example using an
     }
 
 
-    public Clip makeLastFrameFilter2(String lastFrame, float startTime, Clip mediaIn, Clip mediaLogo, int duration, String outPath, ShellCallback sc) throws Exception {
+    public Clip makeLastFrameFilter2(String lastFrame, float startTime, Clip mediaIn, Clip mediaLogo, float duration, String outPath, ShellCallback sc) throws Exception {
         Clip result = new Clip();
         ArrayList<String> cmd = new ArrayList<String>();
         cmd.add(mFfmpegBin);
@@ -866,31 +877,31 @@ out.avi – create this output file. Change it as you like, for example using an
         cmd.add(Argument.DURATION);
         cmd.add(String.valueOf(duration));
 
-        cmd.add("-i");
+        cmd.add(Argument.FILE_INPUT);
         cmd.add(new File(mediaIn.path).getCanonicalPath());
 
-        cmd.add("-i");
+        cmd.add(Argument.FILE_INPUT);
         cmd.add(new File(mediaLogo.path).getCanonicalPath());
 
-        cmd.add("-i");
+        cmd.add(Argument.FILE_INPUT);
         cmd.add(new File(lastFrame).getCanonicalPath());
 
         cmd.add(Argument.FRAMERATE);
-        cmd.add("24");
+        cmd.add(String.valueOf(mediaIn.frameRate));
 
-        cmd.add("-preset");
+        cmd.add(Argument.PRESET);
         cmd.add("medium");
 
-        cmd.add("-c:v");
+        cmd.add(Argument.CODEC_VIDEO);
         cmd.add("libx264");
 
-        cmd.add("-pix_fmt");
+        cmd.add(Argument.PIX_FORMAT);
         cmd.add("yuv420p");
 
-        cmd.add("-map");
+        cmd.add(Argument.MAP);
         cmd.add("0:0");
 
-        cmd.add("-filter_complex");
+        cmd.add(Argument.FILTER_COMPLEX);
         String filter = "geq=lum='if(lte(T,0.5), 255*T*(1/0.5),255)',format=gray[grad];"
                 + "[0:v][2:v]overlay=0:0 [lay1];"
                 + "[lay1]boxblur=8[blur];"
@@ -912,7 +923,7 @@ out.avi – create this output file. Change it as you like, for example using an
             cmd.add(mediaIn.videoBitrate + "k");
         }
 
-        cmd.add("-profile:v");
+        cmd.add(Argument.PROFILE);
         cmd.add("high");
 
         cmd.add("-g");

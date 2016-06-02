@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
 
     @InjectView(R.id.text_mix)
     Button textMix;
-    String mp4FilePath = "/storage/emulated/0/.mofunshow/movies/90331/20160520192149267651000519.mp4";
+    String mp4FilePath = "/storage/emulated/0/.mofunshow/movies/90331/20160529171913002801000325.mp4";
     String bgMp3FilePath = "/storage/emulated/0/.mofunshow/movies/90331/20160520191953876045000830.aac";
     String jsonFilePath = "/storage/emulated/0/.mofunshow/movies/90331/20160520192149267651000519.json";
     String bgWavFilePath = "/storage/emulated/0/.mofunshow/movies/90331/2015082214101800000358814.wav";
