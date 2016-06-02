@@ -1,0 +1,25 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 15
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+
+}
+dependencies {
+    compile 'com.google.code.gson:gson:2.4'
+    compile 'com.jakewharton:butterknife:6.0.0'
+    compile 'com.googlecode.mp4parser:isoparser:1.1.7'
+//    compile project(':imagevideo')
+}

@@ -5,6 +5,10 @@ Android applications.  It depends on the
 [android-ffmpeg](https://github.com/guardianproject/android-ffmpeg) project to
 provide the ffmpeg binary.
 
+New ffmpeg binary has be provided from [android-ffmpeg](http://writingminds.github.io/ffmpeg-android/) & [ffmpeg-android-java](https://github.com/WritingMinds/ffmpeg-android-java)
+FFmpeg version was update to n2.4.2.
+
+
 For ease of developer use, we've included the FFMPEG and Sox binaries in the project,
 however, we strongly recommend you compile them yourselves using the steps below.
 
