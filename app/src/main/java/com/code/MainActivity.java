@@ -88,7 +88,7 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View view) {
                 try {
-                    MixTest.testMergeMp4(mp4FilePath, mp4OutPath, tempPath, mp4AllPath, getApplicationContext());
+//                    MixTest.testMergeMp4(mp4FilePath, mp4OutPath, tempPath, mp4AllPath, getApplicationContext());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

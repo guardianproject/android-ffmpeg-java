@@ -33,12 +33,15 @@ public class FfmpegController {
 
     private String mCmdCat = "sh cat";
 
-    public FfmpegController(Context context, File fileTemp) throws FileNotFoundException, IOException {
+    public FfmpegController(Context context, File fileTemp, boolean overwrite) throws FileNotFoundException, IOException {
         mFileTemp = fileTemp;
-
-        installBinaries(context, false);
+        installBinaries(context, overwrite);
     }
 
+    public FfmpegController(Context context, File fileTemp) throws FileNotFoundException, IOException {
+        mFileTemp = fileTemp;
+        installBinaries(context, false);
+    }
     public void installBinaries(Context context, boolean overwrite) {
         mFfmpegBin = installBinary(context, R.raw.ffmpeg, "ffmpeg", overwrite);
     }
@@ -50,10 +53,12 @@ public class FfmpegController {
     private static String installBinary(Context ctx, int resId, String filename, boolean upgrade) {
         try {
             File f = new File(ctx.getDir("bin", 0), filename);
-            if (f.exists()) {
-                f.delete();
+            if (upgrade) {
+                if (f.exists()) {
+                    f.delete();
+                }
+                copyRawFile(ctx, resId, f, "0755");
             }
-            copyRawFile(ctx, resId, f, "0755");
             return f.getCanonicalPath();
         } catch (Exception e) {
             Log.e(TAG, "installBinary failed: " + e.getLocalizedMessage());
@@ -218,8 +223,6 @@ public class FfmpegController {
         public static final String PIX_FORMAT = "-pix_fmt";
         public static final String MAP = "-map";
         public static final String FILTER_COMPLEX = "-filter_complex";
-
-
 
 
     }

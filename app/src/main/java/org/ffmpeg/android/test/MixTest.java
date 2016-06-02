@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.os.Environment;
 import android.text.TextPaint;
 import android.util.Log;
 
@@ -17,11 +18,13 @@ import com.googlecode.mp4parser.authoring.tracks.AppendTrack;
 
 import org.ffmpeg.android.Clip;
 import org.ffmpeg.android.FfmpegController;
+import org.ffmpeg.android.R;
 import org.ffmpeg.android.ShellUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.util.LinkedList;
@@ -164,13 +167,15 @@ public class MixTest {
 
     }
 
-    public static void testMergeMp4(final String mp4FilePath, final String filterPath, String fileTmpPath, final String clipOut, Context context) throws Exception {
+    public static void testMergeMp4(FfmpegController fc, final String mp4FilePath, final String filterPath, String fileTmpPath, final String clipOut, Context context) throws Exception {
         File fileTmp = new File(fileTmpPath);
 
         String content = "file '" + mp4FilePath + "'\r\n"
                 + "file '" + filterPath + "'";
 
-        final FfmpegController fc = new FfmpegController(context, fileTmp);
+        if (fc == null) {
+            fc = new FfmpegController(context, fileTmp);
+        }
         fc.mergMp4(saveConfig(content, fileTmpPath), clipOut, new ShellUtils.ShellCallback() {
             @Override
             public void shellOut(String shellLine) {
@@ -303,12 +308,11 @@ public class MixTest {
     public static void testMakeLastFrameFilter(String lastFrame, long timeLength, final String mp4FilePath, final String fileTmpPath, final String clipOut, final Context context) throws Exception {
         File fileTmp = new File(fileTmpPath);
         float timeSecond = timeLength / 1000f;
-        final FfmpegController fc = new FfmpegController(context, fileTmp);
-        final String clipLogoOrg = "/storage/emulated/0/.mofunshow/movies/90331/logo2.png";
+        final FfmpegController fc = new FfmpegController(context, fileTmp, false);
         final String tempMp4 = fileTmpPath + "/" + "temp_filter.mp4";
 
         Bitmap bitmap = BitmapFactory.decodeFile(lastFrame);
-        Clip logo = new Clip(createLogoWall(clipLogoOrg, "主演:香肠嘴猪八戒™の개암Athens❄️冰.", bitmap.getWidth()));
+        Clip logo = new Clip(createLogoWall("主演:香肠嘴猪八戒™の개암Athens❄️冰.", bitmap.getWidth(), context));
 
         Clip mp4ClipOrg = new Clip(mp4FilePath);
         mp4ClipOrg.width = bitmap.getWidth();
@@ -324,7 +328,7 @@ public class MixTest {
             public void processComplete(int exitValue) {
                 System.out.println("makeLastFrameFilter> complete");
                 try {
-                    testMergeMp4(mp4FilePath, tempMp4, fileTmpPath, clipOut, context);
+                    testMergeMp4(fc, mp4FilePath, tempMp4, fileTmpPath, clipOut, context);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -334,10 +338,20 @@ public class MixTest {
 
     }
 
-    private static String createLogoWall(String clipLogoOrg, String text, int fixWidth) {
-        String outPath = "/storage/emulated/0/.mofunshow/movies/90331/logo_user.png";
+    public static Bitmap readBitmap(int resid, Context context) {
+        BitmapFactory.Options opt = new BitmapFactory.Options();
+        opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        opt.inPurgeable = true;
+        opt.inInputShareable = true;
+//获取资源图片
+        InputStream input = context.getResources().openRawResource(resid);
+        return BitmapFactory.decodeStream(input, null, opt);
+    }
+
+    private static String createLogoWall(String text, int fixWidth, Context context) {
+        String outPath = Environment.getExternalStorageDirectory() + "/logo_user.png";
         new File(outPath).delete();
-        Bitmap bitmap = getDrawBitMap(BitmapFactory.decodeFile(clipLogoOrg), text, fixWidth);
+        Bitmap bitmap = getDrawBitMap(readBitmap(R.raw.end_wallpaper_eng, context), text, fixWidth);
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(outPath);
